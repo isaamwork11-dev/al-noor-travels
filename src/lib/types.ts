@@ -1,0 +1,294 @@
+export type UserRole = "super_admin" | "staff";
+
+export type Permission =
+  | "view_cost"
+  | "view_profit"
+  | "view_accounts"
+  | "view_financial_reports"
+  | "manage_users"
+  | "create_records"
+  | "edit_records"
+  | "delete_records"
+  | "view_reports"
+  | "view_activity_log";
+
+export interface UserPermissions {
+  viewCost: boolean;
+  viewProfit: boolean;
+  viewAccounts: boolean;
+  viewFinancialReports: boolean;
+  manageUsers: boolean;
+  createRecords: boolean;
+  editRecords: boolean;
+  deleteRecords: boolean;
+  viewReports: boolean;
+  viewActivityLog: boolean;
+}
+
+export interface AppUser {
+  id: string;
+  username: string;
+  password: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  permissions: UserPermissions;
+  active: boolean;
+  avatar?: string;
+  createdAt: string;
+}
+
+export type BookingStatus = "Confirmed" | "Pending" | "Cancelled" | "Refunded" | "Completed";
+export type ServiceType =
+  | "air_ticket"
+  | "visa"
+  | "hotel"
+  | "transport"
+  | "umrah"
+  | "tour"
+  | "insurance";
+
+export interface Customer {
+  id: string;
+  customerId: string;
+  name: string;
+  mobile: string;
+  cnic: string;
+  passportNumber: string;
+  email: string;
+  address: string;
+  outstanding: number;
+  createdAt: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  type: string;
+  mobile: string;
+  email: string;
+  outstanding: number;
+  createdAt: string;
+}
+
+export interface AirTicket {
+  id: string;
+  bookingId: string;
+  passengerName: string;
+  customerId: string;
+  airline: string;
+  pnr: string;
+  ticketNumber: string;
+  sector: string;
+  issueDate: string;
+  travelDate: string;
+  flightTime: string;
+  supplierId: string;
+  costPrice: number;
+  salePrice: number;
+  profit: number;
+  status: BookingStatus;
+  currency: Currency;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface VisaRecord {
+  id: string;
+  bookingId: string;
+  customerId: string;
+  passportNo: string;
+  visaType: "Umrah Visa" | "Dubai Visa" | "Malaysia Visa" | "Visit Visa" | "Other";
+  country?: string;
+  submissionDate: string;
+  approvalDate?: string;
+  expiryDate?: string;
+  costPrice: number;
+  salePrice: number;
+  profit: number;
+  status: BookingStatus | "In Process" | "Approved" | "Rejected";
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface HotelBooking {
+  id: string;
+  bookingId: string;
+  customerId: string;
+  hotelName: string;
+  city: string;
+  checkIn: string;
+  checkOut: string;
+  roomType: string;
+  supplierId: string;
+  costPrice: number;
+  salePrice: number;
+  profit: number;
+  status: BookingStatus;
+  createdBy: string;
+  createdAt: string;
+}
+
+export type TransportType = "Airport Transfer" | "Ziyarat Transport" | "Local Transport";
+
+export interface TransportBooking {
+  id: string;
+  bookingId: string;
+  customerId: string;
+  type: TransportType;
+  pickup: string;
+  dropoff: string;
+  date: string;
+  time: string;
+  vehicle: string;
+  driver: string;
+  costPrice: number;
+  salePrice: number;
+  profit: number;
+  status: BookingStatus;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface UmrahPackage {
+  id: string;
+  bookingId: string;
+  customerId: string;
+  packageName: string;
+  includesVisa: boolean;
+  includesTicket: boolean;
+  includesHotel: boolean;
+  includesTransport: boolean;
+  travelDate: string;
+  returnDate: string;
+  costPrice: number;
+  salePrice: number;
+  profit: number;
+  status: BookingStatus;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface TourPackage {
+  id: string;
+  bookingId: string;
+  customerId: string;
+  packageName: string;
+  destination: string;
+  travelDate: string;
+  returnDate: string;
+  costPrice: number;
+  salePrice: number;
+  profit: number;
+  status: BookingStatus;
+  createdBy: string;
+  createdAt: string;
+}
+
+export type Currency = "PKR" | "SAR" | "AED" | "USD";
+
+export interface InsuranceRecord {
+  id: string;
+  bookingId: string;
+  customerId: string;
+  provider: string;
+  policyNumber: string;
+  coverageType: string;
+  startDate: string;
+  endDate: string;
+  costPrice: number;
+  salePrice: number;
+  profit: number;
+  status: BookingStatus;
+  currency: Currency;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface Payment {
+  id: string;
+  type: "Customer" | "Supplier";
+  partyId: string;
+  partyName: string;
+  amount: number;
+  currency: Currency;
+  amountPKR: number;
+  dueDate: string;
+  paidDate?: string;
+  status: "Pending" | "Paid" | "Partial";
+  note?: string;
+  createdAt: string;
+}
+
+export interface CashEntry {
+  id: string;
+  type: "Income" | "Expense";
+  category: string;
+  amount: number;
+  currency: Currency;
+  amountPKR: number;
+  description: string;
+  date: string;
+  createdBy: string;
+}
+
+export interface Refund {
+  id: string;
+  serviceType: ServiceType;
+  referenceId: string;
+  bookingId: string;
+  customerName: string;
+  refundType: "Full" | "Partial" | "Used + Refunded";
+  originalAmount: number;
+  airlineCharges: number;
+  serviceCharges: number;
+  refundAmount: number;
+  status: "Pending" | "Processed";
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  module: string;
+  details: string;
+  createdAt: string;
+}
+
+export interface ExchangeRates {
+  PKR: number;
+  SAR: number;
+  AED: number;
+  USD: number;
+}
+
+export interface AppState {
+  users: AppUser[];
+  customers: Customer[];
+  suppliers: Supplier[];
+  airTickets: AirTicket[];
+  visas: VisaRecord[];
+  hotels: HotelBooking[];
+  transports: TransportBooking[];
+  umrahPackages: UmrahPackage[];
+  tourPackages: TourPackage[];
+  insurance: InsuranceRecord[];
+  payments: Payment[];
+  cashBook: CashEntry[];
+  refunds: Refund[];
+  activityLogs: ActivityLog[];
+  exchangeRates: ExchangeRates;
+}
+
+/** A user as returned by the API — the password hash never leaves the server. */
+export type PublicUser = Omit<AppUser, "password">;
+
+/** Payload of `GET /api/bootstrap`: the whole app state for the signed-in user. */
+export interface BootstrapData extends Omit<AppState, "users"> {
+  users: PublicUser[];
+  currentUser: PublicUser;
+  lastBackupAt?: string;
+}

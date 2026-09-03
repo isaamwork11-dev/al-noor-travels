@@ -1,0 +1,85 @@
+"use client";
+
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { useAppStore } from "@/lib/store";
+import { formatDate, formatPKR } from "@/lib/format";
+import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
+
+export default function AirTicketsPage() {
+  const user = useAppStore((s) => s.currentUser);
+  const airTickets = useAppStore((s) => s.airTickets);
+  const customers = useAppStore((s) => s.customers);
+  const suppliers = useAppStore((s) => s.suppliers);
+  const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
+  const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
+
+  const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
+  const supplierName = (id: string) => suppliers.find((s) => s.id === id)?.name || "—";
+
+  return (
+    <div>
+      <PageHeader title="Air Tickets" breadcrumb="Home / Air Tickets" />
+      <Card
+        title="All Tickets"
+        action={
+          <Link href="/air-tickets/new">
+            <Button>
+              <Plus size={16} /> Add Ticket
+            </Button>
+          </Link>
+        }
+      >
+        {airTickets.length === 0 ? (
+          <EmptyState message="No air tickets yet." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs text-slate-500">
+                  <th className="pb-2 font-medium">Booking</th>
+                  <th className="pb-2 font-medium">Passenger</th>
+                  <th className="pb-2 font-medium">Airline</th>
+                  <th className="pb-2 font-medium">PNR</th>
+                  <th className="pb-2 font-medium">Sector</th>
+                  <th className="pb-2 font-medium">Travel</th>
+                  <th className="pb-2 font-medium">Supplier</th>
+                  {showCost && <th className="pb-2 font-medium">Cost</th>}
+                  <th className="pb-2 font-medium">Sale</th>
+                  {showProfit && <th className="pb-2 font-medium">Profit</th>}
+                  <th className="pb-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {airTickets.map((t) => (
+                  <tr key={t.id} className="border-b border-slate-50 last:border-0">
+                    <td className="py-2.5 font-medium text-blue-700">{t.bookingId}</td>
+                    <td className="py-2.5 text-slate-800">
+                      <div>{t.passengerName}</div>
+                      <div className="text-xs text-slate-400">{customerName(t.customerId)}</div>
+                    </td>
+                    <td className="py-2.5 text-slate-600">{t.airline}</td>
+                    <td className="py-2.5 text-slate-600">{t.pnr}</td>
+                    <td className="py-2.5 text-slate-600">{t.sector}</td>
+                    <td className="py-2.5 text-slate-600">{formatDate(t.travelDate)}</td>
+                    <td className="py-2.5 text-slate-600">{supplierName(t.supplierId)}</td>
+                    {showCost && (
+                      <td className="py-2.5 text-slate-700">{formatPKR(t.costPrice)}</td>
+                    )}
+                    <td className="py-2.5 font-medium text-slate-800">{formatPKR(t.salePrice)}</td>
+                    {showProfit && (
+                      <td className="py-2.5 font-medium text-emerald-700">{formatPKR(t.profit)}</td>
+                    )}
+                    <td className="py-2.5">
+                      <StatusBadge status={t.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
