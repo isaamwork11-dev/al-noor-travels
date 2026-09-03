@@ -66,7 +66,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg">
             <Plane size={28} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Al-Noor Travels</h1>
+          <h1 className="text-2xl font-bold text-slate-900">SSB Travel & Tours</h1>
           <p className="mt-1 text-sm text-slate-500">Travel Agency Management Portal</p>
           <p className="mt-2 text-[11px] font-medium text-emerald-600">Connected to MongoDB Atlas</p>
         </div>

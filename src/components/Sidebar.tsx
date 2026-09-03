@@ -138,7 +138,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               AN
             </div>
             <div>
-              <p className="text-sm font-bold leading-tight">Al-Noor Travels</p>
+              <p className="text-sm font-bold leading-tight">SSB Travel & Tours</p>
               <p className="text-[10px] text-slate-300">Travel Agency Management</p>
             </div>
           </div>

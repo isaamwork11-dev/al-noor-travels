@@ -26,7 +26,7 @@ export function generateVoucherPDF(payload: VoucherPayload) {
   doc.rect(0, 0, 210, 36, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
-  doc.text("Al-Noor Travels", 14, 16);
+  doc.text("SSB Travel & Tours", 14, 16);
   doc.setFontSize(11);
   doc.text(titles[payload.kind], 14, 26);
   doc.setFontSize(10);
@@ -61,7 +61,7 @@ export function generateVoucherPDF(payload: VoucherPayload) {
 
   doc.setFontSize(8);
   doc.setTextColor(100);
-  doc.text("This is a computer-generated voucher from Al-Noor Travels Management System.", 14, 285);
+  doc.text("This is a computer-generated voucher from SSB Travel & Tours Management System.", 14, 285);
 
   doc.save(`${payload.kind}-${payload.bookingId}.pdf`);
 }
