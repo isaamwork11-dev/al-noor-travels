@@ -27,7 +27,7 @@ export const STAFF_DEFAULT_PERMISSIONS: UserPermissions = {
 };
 
 export const DEMO_DATA: AppState = {
-  exchangeRates: { PKR: 1, SAR: 74.5, AED: 76.2, USD: 278.5 },
+  exchangeRates: { PKR: 1, SAR: 73.9, AED: 76.1, USD: 278.5 },
   users: [
     {
       id: "u1",

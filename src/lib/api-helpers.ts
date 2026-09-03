@@ -27,7 +27,8 @@ import {
 export type DbRecord = Record<string, unknown>;
 type CollectionModel = Model<DbRecord>;
 
-export const DEFAULT_RATES: ExchangeRates = { PKR: 1, SAR: 74.5, AED: 76.2, USD: 278.5 };
+// 1 SAR = 73.90 PKR, 1 AED = 76.10 PKR, 1 USD = 278.50 PKR  (Sep 2026 approx)
+export const DEFAULT_RATES: ExchangeRates = { PKR: 1, SAR: 73.9, AED: 76.1, USD: 278.5 };
 
 export interface CollectionConfig {
   model: CollectionModel;

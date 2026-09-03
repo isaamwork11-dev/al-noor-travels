@@ -68,7 +68,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">SSB Travel & Tours</h1>
           <p className="mt-1 text-sm text-slate-500">Travel Agency Management Portal</p>
-          <p className="mt-2 text-[11px] font-medium text-emerald-600">Connected to MongoDB Atlas</p>
+          {/* <p className="mt-2 text-[11px] font-medium text-emerald-600">Connected to MongoDB Atlas</p> */}
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
