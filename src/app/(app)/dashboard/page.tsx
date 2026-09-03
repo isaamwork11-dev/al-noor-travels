@@ -61,8 +61,8 @@ export default function DashboardPage() {
   const totalProfit = totalSales - totalCost;
   const receivables = customers.reduce((a, c) => a + c.outstanding, 0);
 
-  // Currency Converter: SAR / AED / USD → PKR
-  const FOREIGN_CURRENCIES = ["SAR", "AED", "USD"] as const;
+  // Currency Converter: all foreign currencies → PKR
+  const FOREIGN_CURRENCIES = ["SAR", "AED", "USD", "EUR", "GBP", "OMR", "BHD", "KWD", "TRY", "CNY"] as const;
   type ForeignCurrency = (typeof FOREIGN_CURRENCIES)[number];
   const [convAmount, setConvAmount] = useState<string>("20");
   const [convCurrency, setConvCurrency] = useState<ForeignCurrency>("SAR");

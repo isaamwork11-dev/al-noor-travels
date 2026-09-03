@@ -1,17 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppStore } from "@/lib/store";
-import { settings as settingsApi } from "@/lib/api-client";
-import type { ExchangeRates } from "@/lib/types";
 import { Button, Card, Input, PageHeader, PasswordInput } from "@/components/ui";
-
-const CURRENCIES: (keyof ExchangeRates)[] = ["SAR", "AED", "USD"];
 
 export default function SettingsPage() {
   const user = useAppStore((s) => s.currentUser);
   const updateUser = useAppStore((s) => s.updateUser);
-  const exchangeRates = useAppStore((s) => s.exchangeRates);
   const resetDemo = useAppStore((s) => s.resetDemo);
 
   // Profile form
@@ -22,24 +17,6 @@ export default function SettingsPage() {
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
   const [profileMsg, setProfileMsg] = useState("");
   const [pwMsg, setPwMsg] = useState("");
-
-  // Rates form — editable, initial from store
-  const [rates, setRates] = useState<Record<string, string>>({
-    SAR: String(exchangeRates.SAR),
-    AED: String(exchangeRates.AED),
-    USD: String(exchangeRates.USD),
-  });
-  const [ratesMsg, setRatesMsg] = useState("");
-  const [ratesSaving, setRatesSaving] = useState(false);
-
-  // Keep rates form in sync if store changes (e.g. after hydration)
-  useEffect(() => {
-    setRates({
-      SAR: String(exchangeRates.SAR),
-      AED: String(exchangeRates.AED),
-      USD: String(exchangeRates.USD),
-    });
-  }, [exchangeRates.SAR, exchangeRates.AED, exchangeRates.USD]);
 
   const [resetMsg, setResetMsg] = useState("");
 
@@ -63,27 +40,6 @@ export default function SettingsPage() {
     setPwForm({ current: "", next: "", confirm: "" });
     setPwMsg("Password changed.");
     setTimeout(() => setPwMsg(""), 3000);
-  };
-
-  const saveRates = async () => {
-    setRatesSaving(true);
-    setRatesMsg("");
-    try {
-      const newRates: ExchangeRates = {
-        PKR: 1,
-        SAR: parseFloat(rates.SAR) || 0,
-        AED: parseFloat(rates.AED) || 0,
-        USD: parseFloat(rates.USD) || 0,
-      };
-      await settingsApi.update({ exchangeRates: newRates });
-      // Update zustand store so dashboard converter reflects immediately
-      useAppStore.setState({ exchangeRates: newRates });
-      setRatesMsg("Rates saved.");
-    } catch (err) {
-      setRatesMsg(err instanceof Error ? err.message : "Save failed");
-    }
-    setRatesSaving(false);
-    setTimeout(() => setRatesMsg(""), 3000);
   };
 
   const onReset = async () => {
@@ -168,48 +124,6 @@ export default function SettingsPage() {
                 </p>
               )}
             </div>
-          </div>
-        </Card>
-
-        {/* Exchange Rates */}
-        <Card title="Exchange Rates (1 unit → PKR)">
-          <p className="mb-3 text-xs text-slate-500">
-            Rates are used in Currency Converter on the Dashboard and all cash book entries. Update and save to apply instantly.
-          </p>
-          <div className="space-y-3">
-            {CURRENCIES.map((cur) => (
-              <div key={cur} className="flex items-center gap-3">
-                <span className="w-10 text-sm font-semibold text-slate-700">{cur}</span>
-                <span className="text-xs text-slate-400">=</span>
-                <div className="flex-1">
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={rates[cur] ?? ""}
-                    onChange={(e) =>
-                      setRates((prev) => ({ ...prev, [cur]: e.target.value }))
-                    }
-                  />
-                </div>
-                <span className="text-xs text-slate-500">PKR</span>
-                <span className="text-xs text-slate-400 font-medium">
-                  (current: {exchangeRates[cur]})
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex items-center gap-3">
-            <Button onClick={saveRates} disabled={ratesSaving}>
-              {ratesSaving ? "Saving…" : "Save Rates"}
-            </Button>
-            {ratesMsg && (
-              <p
-                className={`text-sm font-medium ${ratesMsg === "Rates saved." ? "text-emerald-700" : "text-rose-600"}`}
-              >
-                {ratesMsg}
-              </p>
-            )}
           </div>
         </Card>
 

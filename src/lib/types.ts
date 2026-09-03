@@ -260,9 +260,16 @@ export interface ActivityLog {
 
 export interface ExchangeRates {
   PKR: number;
-  SAR: number;
-  AED: number;
-  USD: number;
+  SAR: number;   // Saudi Riyal
+  AED: number;   // UAE Dirham
+  USD: number;   // US Dollar
+  EUR: number;   // Euro
+  GBP: number;   // British Pound
+  OMR: number;   // Omani Rial
+  BHD: number;   // Bahraini Dinar
+  KWD: number;   // Kuwaiti Dinar
+  TRY: number;   // Turkish Lira
+  CNY: number;   // Chinese Yuan
 }
 
 export interface AppState {

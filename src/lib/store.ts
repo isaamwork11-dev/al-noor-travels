@@ -46,7 +46,7 @@ const EMPTY: AppState = {
   cashBook: [],
   refunds: [],
   activityLogs: [],
-  exchangeRates: { PKR: 1, SAR: 74.5, AED: 76.2, USD: 278.5 },
+  exchangeRates: { PKR: 1, SAR: 73.9, AED: 76.1, USD: 278.5, EUR: 308.0, GBP: 363.0, OMR: 723.0, BHD: 739.0, KWD: 906.0, TRY: 8.2, CNY: 38.5 },
 };
 
 interface AuthSlice {

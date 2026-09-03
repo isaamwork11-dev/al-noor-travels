@@ -27,8 +27,20 @@ import {
 export type DbRecord = Record<string, unknown>;
 type CollectionModel = Model<DbRecord>;
 
-// 1 SAR = 73.90 PKR, 1 AED = 76.10 PKR, 1 USD = 278.50 PKR  (Sep 2026 approx)
-export const DEFAULT_RATES: ExchangeRates = { PKR: 1, SAR: 73.9, AED: 76.1, USD: 278.5 };
+// Approx rates as of Sep 2026 (1 unit → PKR)
+export const DEFAULT_RATES: ExchangeRates = {
+  PKR: 1,
+  SAR: 73.9,    // Saudi Riyal
+  AED: 76.1,    // UAE Dirham
+  USD: 278.5,   // US Dollar
+  EUR: 308.0,   // Euro
+  GBP: 363.0,   // British Pound
+  OMR: 723.0,   // Omani Rial
+  BHD: 739.0,   // Bahraini Dinar
+  KWD: 906.0,   // Kuwaiti Dinar
+  TRY: 8.2,     // Turkish Lira
+  CNY: 38.5,    // Chinese Yuan
+};
 
 export interface CollectionConfig {
   model: CollectionModel;
@@ -209,7 +221,27 @@ export function sanitizeAll(records: DbRecord[]): DbRecord[] {
 
 export async function getSettings(): Promise<AppSettingsDoc> {
   const existing = await AppSettings.findOne({ id: SETTINGS_ID }).lean<AppSettingsDoc | null>();
-  if (existing) return existing;
+  if (existing) {
+    // Auto-correct stale rates that were stored with old wrong defaults
+    const rates = existing.exchangeRates as ExchangeRates | undefined;
+    const stale =
+      !rates ||
+      rates.SAR === 74.5 ||   // old wrong SAR default
+      rates.AED === 76.2 ||   // old wrong AED default
+      rates.SAR === 0 ||
+      rates.AED === 0 ||
+      !rates.EUR ||           // missing new currencies
+      !rates.GBP ||
+      !rates.OMR;
+    if (stale) {
+      await AppSettings.updateOne(
+        { id: SETTINGS_ID },
+        { $set: { exchangeRates: DEFAULT_RATES } }
+      );
+      return { ...existing, exchangeRates: DEFAULT_RATES } as AppSettingsDoc;
+    }
+    return existing;
+  }
   const created = await AppSettings.create({
     id: SETTINGS_ID,
     exchangeRates: DEFAULT_RATES,
