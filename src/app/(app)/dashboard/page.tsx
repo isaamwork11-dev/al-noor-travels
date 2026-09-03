@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Plane,
@@ -14,7 +15,14 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatPKR } from "@/lib/format";
-import { Card, PageHeader, StatCard, StatusBadge } from "@/components/ui";
+import {
+  Card,
+  Input,
+  PageHeader,
+  Select,
+  StatCard,
+  StatusBadge,
+} from "@/components/ui";
 import { SalesLineChart, ServicesPieChart } from "@/components/Charts";
 
 export default function DashboardPage() {
@@ -28,6 +36,7 @@ export default function DashboardPage() {
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const tourPackages = useAppStore((s) => s.tourPackages);
   const payments = useAppStore((s) => s.payments);
+  const exchangeRates = useAppStore((s) => s.exchangeRates);
 
   const showCost = user?.permissions.viewCost || user?.role === "super_admin";
   const showProfit = user?.permissions.viewProfit || user?.role === "super_admin";
@@ -51,6 +60,15 @@ export default function DashboardPage() {
 
   const totalProfit = totalSales - totalCost;
   const receivables = customers.reduce((a, c) => a + c.outstanding, 0);
+
+  // Currency Converter (UI only — rates come from MongoDB settings)
+  const [convAmount, setConvAmount] = useState<string>("20");
+  const [convCurrency, setConvCurrency] = useState<"PKR" | "SAR" | "AED" | "USD">("PKR");
+  const convNumber = Number(convAmount);
+  const convPKR =
+    Number.isFinite(convNumber) && convCurrency in exchangeRates
+      ? Math.round(convNumber * exchangeRates[convCurrency])
+      : 0;
 
   const getCustomerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
@@ -194,6 +212,43 @@ export default function DashboardPage() {
           icon={<Wallet size={18} />}
           color="red"
         />
+      </div>
+
+      <div className="mb-5">
+        <Card title="Currency Converter (to PKR)">
+          <div className="grid gap-3 md:grid-cols-3 md:items-end">
+            <Input
+              label="Amount"
+              type="number"
+              min={0}
+              step="0.01"
+              value={convAmount}
+              onChange={(e) => setConvAmount(e.target.value)}
+            />
+            <Select
+              label="Currency"
+              value={convCurrency}
+              onChange={(e) =>
+                setConvCurrency(
+                  e.target.value as "PKR" | "SAR" | "AED" | "USD"
+                )
+              }
+            >
+              {(["PKR", "SAR", "AED", "USD"] as const).map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-medium text-slate-600">Converted to PKR</p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {formatPKR(convPKR)}
+              </p>
+              <p className="mt-1 text-[11px] text-slate-500">Using rate from Settings</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <div className="mb-5 grid gap-4 xl:grid-cols-3">

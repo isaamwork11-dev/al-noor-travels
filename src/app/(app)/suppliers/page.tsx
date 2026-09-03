@@ -7,6 +7,7 @@ import { formatDate, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select } from "@/components/ui";
 
 export default function SuppliersPage() {
+  const user = useAppStore((s) => s.currentUser);
   const suppliers = useAppStore((s) => s.suppliers);
   const addSupplier = useAppStore((s) => s.addSupplier);
   const [open, setOpen] = useState(false);
@@ -16,6 +17,9 @@ export default function SuppliersPage() {
     mobile: "",
     email: "",
   });
+
+  const canCreate =
+    user?.role === "super_admin" || !!user?.permissions.createRecords;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -30,9 +34,11 @@ export default function SuppliersPage() {
       <Card
         title="All Suppliers"
         action={
-          <Button onClick={() => setOpen(true)}>
-            <Plus size={16} /> Add Supplier
-          </Button>
+          canCreate ? (
+            <Button onClick={() => setOpen(true)}>
+              <Plus size={16} /> Add Supplier
+            </Button>
+          ) : undefined
         }
       >
         {suppliers.length === 0 ? (

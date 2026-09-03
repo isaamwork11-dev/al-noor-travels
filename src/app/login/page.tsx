@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plane } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, PasswordInput } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -79,9 +79,8 @@ export default function LoginPage() {
             autoComplete="username"
             required
           />
-          <Input
+          <PasswordInput
             label="Password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
@@ -95,11 +94,6 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-6 rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-          <p className="font-semibold text-slate-700">Demo accounts (seeded on first login)</p>
-          <p className="mt-1">Super Admin: <code>admin</code> / <code>admin123</code></p>
-          <p>Staff (no profit/cost): <code>staff</code> / <code>staff123</code></p>
-        </div>
       </div>
     </div>
   );

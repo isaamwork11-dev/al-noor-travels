@@ -14,6 +14,7 @@ export default function CashBookPage() {
   const addCashEntry = useAppStore((s) => s.addCashEntry);
 
   const canView = user?.role === "super_admin" || !!user?.permissions.viewAccounts;
+  const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -87,9 +88,11 @@ export default function CashBookPage() {
       <Card
         title="Entries"
         action={
-          <Button onClick={() => setOpen(true)}>
-            <Plus size={16} /> Add Entry
-          </Button>
+          canCreate ? (
+            <Button onClick={() => setOpen(true)}>
+              <Plus size={16} /> Add Entry
+            </Button>
+          ) : undefined
         }
       >
         {cashBook.length === 0 ? (

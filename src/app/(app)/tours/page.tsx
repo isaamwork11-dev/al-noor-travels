@@ -14,6 +14,8 @@ export default function ToursPage() {
   const addTour = useAppStore((s) => s.addTour);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
+  const canCreate =
+    user?.role === "super_admin" || !!user?.permissions.createRecords;
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   const [open, setOpen] = useState(false);
@@ -56,9 +58,11 @@ export default function ToursPage() {
       <Card
         title="All Tours"
         action={
-          <Button onClick={() => setOpen(true)}>
-            <Plus size={16} /> Add Tour
-          </Button>
+          canCreate ? (
+            <Button onClick={() => setOpen(true)}>
+              <Plus size={16} /> Add Tour
+            </Button>
+          ) : undefined
         }
       >
         {tourPackages.length === 0 ? (

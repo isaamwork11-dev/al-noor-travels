@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "./ui";
+import { useAppStore } from "@/lib/store";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -105,6 +106,14 @@ const nav = [
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
+  const user = useAppStore((s) => s.currentUser);
+  const isSuperAdmin = user?.role === "super_admin";
+  const canViewAccounts = isSuperAdmin || !!user?.permissions.viewAccounts;
+  const canViewReports = isSuperAdmin || !!user?.permissions.viewReports;
+  const canManageUsers = isSuperAdmin || !!user?.permissions.manageUsers;
+  const canViewActivityLog = isSuperAdmin; // per requirement: only admin
+  const canCreateRecords = isSuperAdmin || !!user?.permissions.createRecords;
+
   const [expanded, setExpanded] = useState<string[]>([
     "Air Tickets",
     "Visa Management",
@@ -147,6 +156,12 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
           {nav.map((item) => {
             if ("href" in item && item.href) {
+              if (item.href === "/reports" && !canViewReports) return null;
+              if (item.href === "/settings" && !isSuperAdmin) return null;
+              if (item.href === "/activity-log" && !canViewActivityLog) return null;
+              if (item.href === "/users" && !canManageUsers) return null;
+              if (item.href.startsWith("/accounts") && !canViewAccounts) return null;
+
               const Icon = item.icon;
               const active = isActive(item.href);
               return (
@@ -169,7 +184,26 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
             const Icon = item.icon;
             const openGroup = expanded.includes(item.label);
-            const childActive = item.children?.some((c) => isActive(c.href));
+
+            const filteredChildren = item.children?.filter((c) => {
+              // Hide create actions from users without create permission.
+              const isAddOrNew =
+                c.href.includes("/new") ||
+                c.label.toLowerCase().includes("add") ||
+                c.label.toLowerCase().includes("new");
+              if (isAddOrNew && !canCreateRecords) return false;
+
+              if (c.href.startsWith("/accounts") && !canViewAccounts) return false;
+              if (c.href.startsWith("/users") && !canManageUsers) return false;
+
+              return true;
+            });
+
+            const childActive =
+              filteredChildren?.some((c) => isActive(c.href)) ?? false;
+
+            if (!filteredChildren || filteredChildren.length === 0) return null;
+
             return (
               <div key={item.label}>
                 <button
@@ -190,7 +224,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                 </button>
                 {openGroup && (
                   <div className="ml-4 space-y-0.5 border-l border-white/10 pl-3 py-1">
-                    {item.children?.map((child) => (
+                    {filteredChildren.map((child) => (
                       <Link
                         key={child.href}
                         href={child.href}
@@ -211,16 +245,6 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
             );
           })}
         </nav>
-
-        <div className="m-3 rounded-xl bg-white/10 p-3">
-          <div className="flex items-center gap-2">
-            <Shield size={16} className="text-blue-300" />
-            <div>
-              <p className="text-xs font-semibold">Your Plan: Premium</p>
-              <p className="text-[10px] text-slate-300">Valid till: 30 Dec 2026</p>
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );

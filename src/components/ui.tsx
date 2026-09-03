@@ -1,6 +1,8 @@
 "use client";
 
 import { clsx } from "clsx";
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 export function cn(...inputs: (string | false | undefined | null)[]) {
@@ -214,6 +216,38 @@ export function Modal({
         <div className="p-5">{children}</div>
       </div>
     </div>
+  );
+}
+
+export function PasswordInput({
+  label,
+  className,
+  ...props
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & { label?: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <label className="block space-y-1">
+      {label && <span className="text-xs font-medium text-slate-600">{label}</span>}
+      <div className="relative">
+        <input
+          type={show ? "text" : "password"}
+          className={cn(
+            "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 pr-9 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100",
+            className
+          )}
+          {...props}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+          tabIndex={-1}
+          aria-label={show ? "Hide password" : "Show password"}
+        >
+          {show ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
+      </div>
+    </label>
   );
 }
 

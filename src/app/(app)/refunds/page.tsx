@@ -13,6 +13,8 @@ export default function RefundsPage() {
   const airTickets = useAppStore((s) => s.airTickets);
   const customers = useAppStore((s) => s.customers);
   const addRefund = useAppStore((s) => s.addRefund);
+  const canCreate =
+    user?.role === "super_admin" || !!user?.permissions.createRecords;
 
   const [open, setOpen] = useState(false);
   const [ticketId, setTicketId] = useState(airTickets[0]?.id || "");
@@ -57,9 +59,11 @@ export default function RefundsPage() {
       <Card
         title="All Refunds"
         action={
-          <Button onClick={() => setOpen(true)}>
-            <Plus size={16} /> Add Refund
-          </Button>
+          canCreate ? (
+            <Button onClick={() => setOpen(true)}>
+              <Plus size={16} /> Add Refund
+            </Button>
+          ) : undefined
         }
       >
         {refunds.length === 0 ? (

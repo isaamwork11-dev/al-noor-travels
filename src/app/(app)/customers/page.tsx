@@ -8,6 +8,7 @@ import { formatDate, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, Input, Modal, PageHeader } from "@/components/ui";
 
 export default function CustomersPage() {
+  const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
   const addCustomer = useAppStore((s) => s.addCustomer);
   const [open, setOpen] = useState(false);
@@ -19,6 +20,9 @@ export default function CustomersPage() {
     email: "",
     address: "",
   });
+
+  const canCreate =
+    user?.role === "super_admin" || !!user?.permissions.createRecords;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -33,9 +37,11 @@ export default function CustomersPage() {
       <Card
         title="All Customers"
         action={
-          <Button onClick={() => setOpen(true)}>
-            <Plus size={16} /> Add Customer
-          </Button>
+          canCreate ? (
+            <Button onClick={() => setOpen(true)}>
+              <Plus size={16} /> Add Customer
+            </Button>
+          ) : undefined
         }
       >
         {customers.length === 0 ? (

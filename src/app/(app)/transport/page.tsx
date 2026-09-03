@@ -13,6 +13,7 @@ export default function TransportPage() {
   const customers = useAppStore((s) => s.customers);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
+  const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   const download = (t: (typeof transports)[0]) => {
@@ -39,11 +40,13 @@ export default function TransportPage() {
       <Card
         title="All Transfers"
         action={
-          <Link href="/transport/new">
-            <Button>
-              <Plus size={16} /> Add Transfer
-            </Button>
-          </Link>
+          canCreate ? (
+            <Link href="/transport/new">
+              <Button>
+                <Plus size={16} /> Add Transfer
+              </Button>
+            </Link>
+          ) : undefined
         }
       >
         {transports.length === 0 ? (

@@ -9,7 +9,7 @@ export default function ActivityLogPage() {
   const activityLogs = useAppStore((s) => s.activityLogs);
 
   const canView =
-    user?.role === "super_admin" || !!user?.permissions.viewActivityLog;
+    user?.role === "super_admin";
 
   if (!canView) {
     return (

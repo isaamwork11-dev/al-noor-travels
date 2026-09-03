@@ -1,10 +1,10 @@
 "use client";
 
-import { Bell, Menu, MessageCircle, Plus, Search, LogOut } from "lucide-react";
+import { Menu, Search, LogOut } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
-import { Button } from "./ui";
+import { Button, Modal } from "./ui";
 
 export function Header({ onMenu }: { onMenu: () => void }) {
   const router = useRouter();
@@ -15,6 +15,7 @@ export function Header({ onMenu }: { onMenu: () => void }) {
   const visas = useAppStore((s) => s.visas);
   const [q, setQ] = useState("");
   const [showResults, setShowResults] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const results = useMemo(() => {
     if (!q.trim()) return [];
@@ -52,7 +53,8 @@ export function Header({ onMenu }: { onMenu: () => void }) {
   }, [q, customers, airTickets, visas]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <>
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="flex items-center gap-3 px-4 py-3">
         <button
           onClick={onMenu}
@@ -96,28 +98,6 @@ export function Header({ onMenu }: { onMenu: () => void }) {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => router.push("/air-tickets/new")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white shadow hover:bg-blue-700"
-            title="Quick Add"
-          >
-            <Plus size={18} />
-          </button>
-          <button className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100">
-            <Bell size={18} />
-            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-              5
-            </span>
-          </button>
-          <a
-            href="https://wa.me/"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg p-2 text-emerald-600 hover:bg-emerald-50"
-          >
-            <MessageCircle size={18} />
-          </a>
-
           <div className="ml-1 flex items-center gap-2 border-l border-slate-200 pl-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white">
               {user?.name?.charAt(0) || "A"}
@@ -131,17 +111,45 @@ export function Header({ onMenu }: { onMenu: () => void }) {
             <Button
               variant="ghost"
               className="!p-2"
-              onClick={async () => {
-                await logout();
-                router.replace("/login");
-              }}
               title="Logout"
+              onClick={() => setLogoutOpen(true)}
             >
               <LogOut size={16} />
             </Button>
           </div>
         </div>
       </div>
-    </header>
+      </header>
+
+      <Modal
+        open={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        title="Logout Confirmation"
+      >
+        <p className="mb-4 text-sm text-slate-600">
+          Are you sure you want to logout?
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setLogoutOpen(false)}
+            type="button"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            type="button"
+            onClick={async () => {
+              await logout();
+              setLogoutOpen(false);
+              router.replace("/login");
+            }}
+          >
+            Logout
+          </Button>
+        </div>
+      </Modal>
+    </>
   );
 }

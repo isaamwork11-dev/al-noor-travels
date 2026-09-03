@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store";
 import { formatDate } from "@/lib/format";
 import { STAFF_DEFAULT_PERMISSIONS } from "@/lib/demo-data";
 import type { UserRole } from "@/lib/types";
-import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
+import { Button, Card, EmptyState, Input, Modal, PageHeader, PasswordInput, Select, StatusBadge } from "@/components/ui";
 
 export default function UsersPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -16,6 +16,7 @@ export default function UsersPage() {
 
   const canManage =
     user?.role === "super_admin" || !!user?.permissions.manageUsers;
+  const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -54,9 +55,11 @@ export default function UsersPage() {
       <Card
         title="All Users"
         action={
-          <Button onClick={() => setOpen(true)}>
-            <Plus size={16} /> Add User
-          </Button>
+          canCreate ? (
+            <Button onClick={() => setOpen(true)}>
+              <Plus size={16} /> Add User
+            </Button>
+          ) : undefined
         }
       >
         {users.length === 0 ? (
@@ -126,9 +129,8 @@ export default function UsersPage() {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
-          <Input
+          <PasswordInput
             label="Password"
-            type="password"
             required
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}

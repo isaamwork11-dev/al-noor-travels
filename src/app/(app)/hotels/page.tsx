@@ -13,6 +13,7 @@ export default function HotelsPage() {
   const customers = useAppStore((s) => s.customers);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
+  const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   const download = (h: (typeof hotels)[0]) => {
@@ -38,11 +39,13 @@ export default function HotelsPage() {
       <Card
         title="All Hotel Bookings"
         action={
-          <Link href="/hotels/new">
-            <Button>
-              <Plus size={16} /> Add Booking
-            </Button>
-          </Link>
+          canCreate ? (
+            <Link href="/hotels/new">
+              <Button>
+                <Plus size={16} /> Add Booking
+              </Button>
+            </Link>
+          ) : undefined
         }
       >
         {hotels.length === 0 ? (

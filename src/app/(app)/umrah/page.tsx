@@ -13,6 +13,8 @@ export default function UmrahPage() {
   const customers = useAppStore((s) => s.customers);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
+  const canCreate =
+    user?.role === "super_admin" || !!user?.permissions.createRecords;
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   const includes = (u: (typeof umrahPackages)[0]) =>
@@ -47,11 +49,13 @@ export default function UmrahPage() {
       <Card
         title="All Packages"
         action={
-          <Link href="/umrah/new">
-            <Button>
-              <Plus size={16} /> New Package
-            </Button>
-          </Link>
+          canCreate ? (
+            <Link href="/umrah/new">
+              <Button>
+                <Plus size={16} /> New Package
+              </Button>
+            </Link>
+          ) : undefined
         }
       >
         {umrahPackages.length === 0 ? (

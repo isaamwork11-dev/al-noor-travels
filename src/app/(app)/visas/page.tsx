@@ -12,6 +12,7 @@ export default function VisasPage() {
   const customers = useAppStore((s) => s.customers);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
+  const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   return (
@@ -20,11 +21,13 @@ export default function VisasPage() {
       <Card
         title="All Visas"
         action={
-          <Link href="/visas/new">
-            <Button>
-              <Plus size={16} /> Add Visa
-            </Button>
-          </Link>
+          canCreate ? (
+            <Link href="/visas/new">
+              <Button>
+                <Plus size={16} /> Add Visa
+              </Button>
+            </Link>
+          ) : undefined
         }
       >
         {visas.length === 0 ? (

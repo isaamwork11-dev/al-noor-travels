@@ -13,6 +13,7 @@ export default function AirTicketsPage() {
   const suppliers = useAppStore((s) => s.suppliers);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
+  const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
 
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
   const supplierName = (id: string) => suppliers.find((s) => s.id === id)?.name || "—";
@@ -23,11 +24,13 @@ export default function AirTicketsPage() {
       <Card
         title="All Tickets"
         action={
-          <Link href="/air-tickets/new">
-            <Button>
-              <Plus size={16} /> Add Ticket
-            </Button>
-          </Link>
+          canCreate ? (
+            <Link href="/air-tickets/new">
+              <Button>
+                <Plus size={16} /> Add Ticket
+              </Button>
+            </Link>
+          ) : undefined
         }
       >
         {airTickets.length === 0 ? (
