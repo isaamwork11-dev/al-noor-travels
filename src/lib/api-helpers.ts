@@ -42,8 +42,25 @@ export interface CollectionConfig {
   permission?: keyof UserPermissions;
 }
 
+/** URL segments accepted by `/api/data/[collection]`, minus the `settings` singleton. */
+export type CollectionKey =
+  | "customers"
+  | "suppliers"
+  | "airTickets"
+  | "visas"
+  | "hotels"
+  | "transports"
+  | "umrahPackages"
+  | "tourPackages"
+  | "insurance"
+  | "payments"
+  | "cashBook"
+  | "refunds"
+  | "users"
+  | "activityLogs";
+
 /** URL segment → collection. Keys mirror the field names in `AppState`. */
-export const COLLECTIONS = {
+export const COLLECTIONS: Record<CollectionKey, CollectionConfig> = {
   customers: {
     model: Customer as unknown as CollectionModel,
     module: "Customers",
@@ -146,9 +163,7 @@ export const COLLECTIONS = {
     sortField: "createdAt",
     permission: "viewActivityLog",
   },
-} satisfies Record<string, CollectionConfig>;
-
-export type CollectionKey = keyof typeof COLLECTIONS;
+};
 
 export function isCollectionKey(value: string): value is CollectionKey {
   return Object.prototype.hasOwnProperty.call(COLLECTIONS, value);

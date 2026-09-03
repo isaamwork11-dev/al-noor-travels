@@ -9,21 +9,36 @@ import { Header } from "./Header";
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const user = useAppStore((s) => s.currentUser);
-  const [hydrated, setHydrated] = useState(false);
+  const hydrateFromServer = useAppStore((s) => s.hydrateFromServer);
+  const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setHydrated(true);
-  }, []);
+    let cancelled = false;
+    (async () => {
+      const ok = await hydrateFromServer();
+      if (cancelled) return;
+      if (!ok) {
+        router.replace("/login");
+        return;
+      }
+      setReady(true);
+    })().catch((err) => {
+      if (cancelled) return;
+      setError(err instanceof Error ? err.message : "Failed to load");
+      router.replace("/login");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrateFromServer, router]);
 
-  useEffect(() => {
-    if (hydrated && !user) router.replace("/login");
-  }, [hydrated, user, router]);
-
-  if (!hydrated || !user) {
+  if (!ready || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-100">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
     );
   }

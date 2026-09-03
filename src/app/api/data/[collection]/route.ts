@@ -81,7 +81,7 @@ export async function POST(request: NextRequest, ctx: Context) {
 
     // `settings` is a singleton, so POST behaves as an update.
     if (collection === "settings") {
-      if (!can(session, "manageUsers") && session.role !== "super_admin") {
+      if (!can(session, "manageUsers")) {
         return jsonError("You do not have permission to change settings", 403);
       }
       const update: DbRecord = {};

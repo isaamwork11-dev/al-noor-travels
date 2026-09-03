@@ -131,8 +131,8 @@ export function Header({ onMenu }: { onMenu: () => void }) {
             <Button
               variant="ghost"
               className="!p-2"
-              onClick={() => {
-                logout();
+              onClick={async () => {
+                await logout();
                 router.replace("/login");
               }}
               title="Logout"

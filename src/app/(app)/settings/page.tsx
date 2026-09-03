@@ -9,11 +9,15 @@ export default function SettingsPage() {
   const resetDemo = useAppStore((s) => s.resetDemo);
   const [msg, setMsg] = useState("");
 
-  const onReset = () => {
-    if (!confirm("Reset all data to demo defaults? Current session will be kept.")) return;
-    resetDemo();
-    setMsg("Demo data has been reset.");
-    setTimeout(() => setMsg(""), 3000);
+  const onReset = async () => {
+    if (!confirm("Reset all MongoDB data to demo defaults?")) return;
+    try {
+      await resetDemo();
+      setMsg("MongoDB demo data has been reset.");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Reset failed");
+    }
+    setTimeout(() => setMsg(""), 4000);
   };
 
   return (
@@ -40,13 +44,13 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        <Card title="Demo Data">
+        <Card title="Database">
+          <p className="mb-2 text-xs font-medium text-emerald-700">MongoDB Atlas connected</p>
           <p className="mb-4 text-sm text-slate-600">
-            Restore the sample customers, bookings, payments, and users used for demos. Your
-            current login session is preserved.
+            Wipe and reseed the Atlas database with sample customers, bookings, and users.
           </p>
           <Button variant="danger" onClick={onReset}>
-            Reset Demo Data
+            Reseed MongoDB Demo Data
           </Button>
           {msg && <p className="mt-3 text-sm font-medium text-emerald-700">{msg}</p>}
         </Card>

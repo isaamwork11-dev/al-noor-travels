@@ -1,18 +1,27 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { DEMO_DATA } from "./demo-data";
-import { calcProfit, nextBookingId, nextId, todayISO } from "./format";
+import {
+  ApiError,
+  auth,
+  bootstrap as fetchBootstrap,
+  data,
+  logActivity as apiLogActivity,
+  seed as seedApi,
+} from "./api-client";
+import { todayISO } from "./format";
 import type {
   ActivityLog,
   AirTicket,
   AppState,
   AppUser,
+  BootstrapData,
   CashEntry,
   Customer,
   HotelBooking,
+  InsuranceRecord,
   Payment,
+  PublicUser,
   Refund,
   Supplier,
   TourPackage,
@@ -22,406 +31,281 @@ import type {
   VisaRecord,
 } from "./types";
 
+const EMPTY: AppState = {
+  users: [],
+  customers: [],
+  suppliers: [],
+  airTickets: [],
+  visas: [],
+  hotels: [],
+  transports: [],
+  umrahPackages: [],
+  tourPackages: [],
+  insurance: [],
+  payments: [],
+  cashBook: [],
+  refunds: [],
+  activityLogs: [],
+  exchangeRates: { PKR: 1, SAR: 74.5, AED: 76.2, USD: 278.5 },
+};
+
 interface AuthSlice {
-  currentUser: AppUser | null;
-  login: (username: string, password: string) => { ok: boolean; message: string };
-  logout: () => void;
+  currentUser: PublicUser | null;
+  hydrated: boolean;
+  loading: boolean;
+  lastBackupAt: string | null;
+  login: (username: string, password: string) => Promise<{ ok: boolean; message: string }>;
+  logout: () => Promise<void>;
+  hydrateFromServer: () => Promise<boolean>;
 }
 
 interface DataActions {
-  resetDemo: () => void;
+  resetDemo: () => Promise<void>;
   logActivity: (action: string, module: string, details: string) => void;
-  // Customers
-  addCustomer: (data: Omit<Customer, "id" | "customerId" | "createdAt" | "outstanding">) => void;
-  updateCustomer: (id: string, data: Partial<Customer>) => void;
-  deleteCustomer: (id: string) => void;
-  // Suppliers
-  addSupplier: (data: Omit<Supplier, "id" | "createdAt" | "outstanding">) => void;
-  updateSupplier: (id: string, data: Partial<Supplier>) => void;
-  // Tickets
-  addTicket: (data: Omit<AirTicket, "id" | "bookingId" | "profit" | "createdAt">) => void;
-  updateTicket: (id: string, data: Partial<AirTicket>) => void;
-  deleteTicket: (id: string) => void;
-  // Visas
-  addVisa: (data: Omit<VisaRecord, "id" | "bookingId" | "profit" | "createdAt">) => void;
-  updateVisa: (id: string, data: Partial<VisaRecord>) => void;
-  // Hotels
-  addHotel: (data: Omit<HotelBooking, "id" | "bookingId" | "profit" | "createdAt">) => void;
-  updateHotel: (id: string, data: Partial<HotelBooking>) => void;
-  // Transport
-  addTransport: (data: Omit<TransportBooking, "id" | "bookingId" | "profit" | "createdAt">) => void;
-  updateTransport: (id: string, data: Partial<TransportBooking>) => void;
-  // Umrah
-  addUmrah: (data: Omit<UmrahPackage, "id" | "bookingId" | "profit" | "createdAt">) => void;
-  updateUmrah: (id: string, data: Partial<UmrahPackage>) => void;
-  // Tours
-  addTour: (data: Omit<TourPackage, "id" | "bookingId" | "profit" | "createdAt">) => void;
-  // Payments
-  addPayment: (data: Omit<Payment, "id" | "createdAt">) => void;
-  markPaymentPaid: (id: string) => void;
-  // Cash
-  addCashEntry: (data: Omit<CashEntry, "id">) => void;
-  // Refunds
-  addRefund: (data: Omit<Refund, "id" | "createdAt">) => void;
-  // Users
-  addUser: (data: Omit<AppUser, "id" | "createdAt">) => void;
-  updateUser: (id: string, data: Partial<AppUser>) => void;
-  updateUserPermissions: (id: string, permissions: UserPermissions) => void;
+  addCustomer: (data: Omit<Customer, "id" | "customerId" | "createdAt" | "outstanding">) => Promise<void>;
+  updateCustomer: (id: string, patch: Partial<Customer>) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
+  addSupplier: (data: Omit<Supplier, "id" | "createdAt" | "outstanding">) => Promise<void>;
+  updateSupplier: (id: string, patch: Partial<Supplier>) => Promise<void>;
+  addTicket: (data: Omit<AirTicket, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
+  updateTicket: (id: string, patch: Partial<AirTicket>) => Promise<void>;
+  deleteTicket: (id: string) => Promise<void>;
+  addVisa: (data: Omit<VisaRecord, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
+  updateVisa: (id: string, patch: Partial<VisaRecord>) => Promise<void>;
+  addHotel: (data: Omit<HotelBooking, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
+  updateHotel: (id: string, patch: Partial<HotelBooking>) => Promise<void>;
+  addTransport: (
+    data: Omit<TransportBooking, "id" | "bookingId" | "profit" | "createdAt">
+  ) => Promise<void>;
+  updateTransport: (id: string, patch: Partial<TransportBooking>) => Promise<void>;
+  addUmrah: (data: Omit<UmrahPackage, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
+  updateUmrah: (id: string, patch: Partial<UmrahPackage>) => Promise<void>;
+  addTour: (data: Omit<TourPackage, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
+  addInsurance: (
+    data: Omit<InsuranceRecord, "id" | "bookingId" | "profit" | "createdAt">
+  ) => Promise<void>;
+  addPayment: (data: Omit<Payment, "id" | "createdAt">) => Promise<void>;
+  markPaymentPaid: (id: string) => Promise<void>;
+  addCashEntry: (data: Omit<CashEntry, "id">) => Promise<void>;
+  addRefund: (data: Omit<Refund, "id" | "createdAt">) => Promise<void>;
+  addUser: (data: Omit<AppUser, "id" | "createdAt">) => Promise<void>;
+  updateUser: (id: string, patch: Partial<AppUser>) => Promise<void>;
+  updateUserPermissions: (id: string, permissions: UserPermissions) => Promise<void>;
 }
 
 type Store = AppState & AuthSlice & DataActions;
 
-function allBookingIds(s: AppState): string[] {
-  return [
-    ...s.airTickets.map((x) => x.bookingId),
-    ...s.visas.map((x) => x.bookingId),
-    ...s.hotels.map((x) => x.bookingId),
-    ...s.transports.map((x) => x.bookingId),
-    ...s.umrahPackages.map((x) => x.bookingId),
-    ...s.tourPackages.map((x) => x.bookingId),
-  ];
+function applyBootstrap(set: (partial: Partial<Store>) => void, payload: BootstrapData) {
+  set({
+    users: payload.users as unknown as AppUser[],
+    customers: payload.customers,
+    suppliers: payload.suppliers,
+    airTickets: payload.airTickets,
+    visas: payload.visas,
+    hotels: payload.hotels,
+    transports: payload.transports,
+    umrahPackages: payload.umrahPackages,
+    tourPackages: payload.tourPackages,
+    insurance: payload.insurance ?? [],
+    payments: payload.payments,
+    cashBook: payload.cashBook,
+    refunds: payload.refunds,
+    activityLogs: payload.activityLogs,
+    exchangeRates: payload.exchangeRates,
+    currentUser: payload.currentUser,
+    lastBackupAt: payload.lastBackupAt ?? null,
+    hydrated: true,
+    loading: false,
+  });
 }
 
-function pushLog(
-  logs: ActivityLog[],
-  user: AppUser | null,
-  action: string,
-  module: string,
-  details: string
-): ActivityLog[] {
-  if (!user) return logs;
-  return [
-    {
-      id: nextId("log"),
-      userId: user.id,
-      userName: user.name,
-      action,
-      module,
-      details,
-      createdAt: new Date().toISOString(),
-    },
-    ...logs,
-  ].slice(0, 500);
+function errMessage(error: unknown, fallback: string) {
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  return fallback;
 }
 
-export const useAppStore = create<Store>()(
-  persist(
-    (set, get) => ({
-      ...DEMO_DATA,
-      currentUser: null,
+export const useAppStore = create<Store>((set, get) => ({
+  ...EMPTY,
+  currentUser: null,
+  hydrated: false,
+  loading: false,
+  lastBackupAt: null,
 
-      login: (username, password) => {
-        const user = get().users.find(
-          (u) => u.username === username && u.password === password && u.active
-        );
-        if (!user) return { ok: false, message: "Invalid username or password" };
-        set((s) => ({
-          currentUser: user,
-          activityLogs: pushLog(s.activityLogs, user, "LOGIN", "Auth", "User logged in"),
-        }));
-        return { ok: true, message: "Welcome" };
-      },
-
-      logout: () => {
-        const user = get().currentUser;
-        set((s) => ({
-          currentUser: null,
-          activityLogs: pushLog(s.activityLogs, user, "LOGOUT", "Auth", "User logged out"),
-        }));
-      },
-
-      resetDemo: () => set({ ...DEMO_DATA, currentUser: get().currentUser }),
-
-      logActivity: (action, module, details) => {
-        set((s) => ({
-          activityLogs: pushLog(s.activityLogs, s.currentUser, action, module, details),
-        }));
-      },
-
-      addCustomer: (data) => {
-        const num = get().customers.length + 1;
-        const customer: Customer = {
-          ...data,
-          id: nextId("c"),
-          customerId: `CUS-${String(num).padStart(4, "0")}`,
-          outstanding: 0,
-          createdAt: todayISO(),
-        };
-        set((s) => ({
-          customers: [customer, ...s.customers],
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "CREATE", "Customers", `Added ${customer.name}`),
-        }));
-      },
-
-      updateCustomer: (id, data) => {
-        set((s) => ({
-          customers: s.customers.map((c) => (c.id === id ? { ...c, ...data } : c)),
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "UPDATE", "Customers", `Updated customer ${id}`),
-        }));
-      },
-
-      deleteCustomer: (id) => {
-        set((s) => ({
-          customers: s.customers.filter((c) => c.id !== id),
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "DELETE", "Customers", `Deleted customer ${id}`),
-        }));
-      },
-
-      addSupplier: (data) => {
-        const supplier: Supplier = {
-          ...data,
-          id: nextId("s"),
-          outstanding: 0,
-          createdAt: todayISO(),
-        };
-        set((s) => ({
-          suppliers: [supplier, ...s.suppliers],
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "CREATE", "Suppliers", `Added ${supplier.name}`),
-        }));
-      },
-
-      updateSupplier: (id, data) => {
-        set((s) => ({
-          suppliers: s.suppliers.map((x) => (x.id === id ? { ...x, ...data } : x)),
-        }));
-      },
-
-      addTicket: (data) => {
-        const bookingId = nextBookingId(allBookingIds(get()));
-        const ticket: AirTicket = {
-          ...data,
-          id: nextId("t"),
-          bookingId,
-          profit: calcProfit(data.costPrice, data.salePrice),
-          createdAt: todayISO(),
-        };
-        set((s) => ({
-          airTickets: [ticket, ...s.airTickets],
-          activityLogs: pushLog(
-            s.activityLogs,
-            s.currentUser,
-            "CREATE",
-            "Air Tickets",
-            `Created ${bookingId} for ${ticket.passengerName}`
-          ),
-        }));
-      },
-
-      updateTicket: (id, data) => {
-        set((s) => ({
-          airTickets: s.airTickets.map((t) => {
-            if (t.id !== id) return t;
-            const next = { ...t, ...data };
-            next.profit = calcProfit(next.costPrice, next.salePrice);
-            return next;
-          }),
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "UPDATE", "Air Tickets", `Updated ticket ${id}`),
-        }));
-      },
-
-      deleteTicket: (id) => {
-        set((s) => ({
-          airTickets: s.airTickets.filter((t) => t.id !== id),
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "DELETE", "Air Tickets", `Deleted ticket ${id}`),
-        }));
-      },
-
-      addVisa: (data) => {
-        const bookingId = nextBookingId(allBookingIds(get()));
-        const visa: VisaRecord = {
-          ...data,
-          id: nextId("v"),
-          bookingId,
-          profit: calcProfit(data.costPrice, data.salePrice),
-          createdAt: todayISO(),
-        };
-        set((s) => ({
-          visas: [visa, ...s.visas],
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "CREATE", "Visa", `Created ${bookingId}`),
-        }));
-      },
-
-      updateVisa: (id, data) => {
-        set((s) => ({
-          visas: s.visas.map((v) => {
-            if (v.id !== id) return v;
-            const next = { ...v, ...data };
-            next.profit = calcProfit(next.costPrice, next.salePrice);
-            return next;
-          }),
-        }));
-      },
-
-      addHotel: (data) => {
-        const bookingId = nextBookingId(allBookingIds(get()));
-        const hotel: HotelBooking = {
-          ...data,
-          id: nextId("h"),
-          bookingId,
-          profit: calcProfit(data.costPrice, data.salePrice),
-          createdAt: todayISO(),
-        };
-        set((s) => ({
-          hotels: [hotel, ...s.hotels],
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "CREATE", "Hotel", `Created ${bookingId}`),
-        }));
-      },
-
-      updateHotel: (id, data) => {
-        set((s) => ({
-          hotels: s.hotels.map((h) => {
-            if (h.id !== id) return h;
-            const next = { ...h, ...data };
-            next.profit = calcProfit(next.costPrice, next.salePrice);
-            return next;
-          }),
-        }));
-      },
-
-      addTransport: (data) => {
-        const bookingId = nextBookingId(allBookingIds(get()));
-        const transport: TransportBooking = {
-          ...data,
-          id: nextId("tr"),
-          bookingId,
-          profit: calcProfit(data.costPrice, data.salePrice),
-          createdAt: todayISO(),
-        };
-        set((s) => ({
-          transports: [transport, ...s.transports],
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "CREATE", "Transport", `Created ${bookingId}`),
-        }));
-      },
-
-      updateTransport: (id, data) => {
-        set((s) => ({
-          transports: s.transports.map((t) => {
-            if (t.id !== id) return t;
-            const next = { ...t, ...data };
-            next.profit = calcProfit(next.costPrice, next.salePrice);
-            return next;
-          }),
-        }));
-      },
-
-      addUmrah: (data) => {
-        const bookingId = nextBookingId(allBookingIds(get()));
-        const pkg: UmrahPackage = {
-          ...data,
-          id: nextId("um"),
-          bookingId,
-          profit: calcProfit(data.costPrice, data.salePrice),
-          createdAt: todayISO(),
-        };
-        set((s) => ({
-          umrahPackages: [pkg, ...s.umrahPackages],
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "CREATE", "Umrah", `Created ${bookingId}`),
-        }));
-      },
-
-      updateUmrah: (id, data) => {
-        set((s) => ({
-          umrahPackages: s.umrahPackages.map((u) => {
-            if (u.id !== id) return u;
-            const next = { ...u, ...data };
-            next.profit = calcProfit(next.costPrice, next.salePrice);
-            return next;
-          }),
-        }));
-      },
-
-      addTour: (data) => {
-        const bookingId = nextBookingId(allBookingIds(get()));
-        const pkg: TourPackage = {
-          ...data,
-          id: nextId("tp"),
-          bookingId,
-          profit: calcProfit(data.costPrice, data.salePrice),
-          createdAt: todayISO(),
-        };
-        set((s) => ({
-          tourPackages: [pkg, ...s.tourPackages],
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "CREATE", "Tours", `Created ${bookingId}`),
-        }));
-      },
-
-      addPayment: (data) => {
-        const payment: Payment = { ...data, id: nextId("p"), createdAt: todayISO() };
-        set((s) => ({
-          payments: [payment, ...s.payments],
-          activityLogs: pushLog(
-            s.activityLogs,
-            s.currentUser,
-            "CREATE",
-            "Payments",
-            `Added ${payment.type} payment for ${payment.partyName}`
-          ),
-        }));
-      },
-
-      markPaymentPaid: (id) => {
-        set((s) => ({
-          payments: s.payments.map((p) =>
-            p.id === id ? { ...p, status: "Paid" as const, paidDate: todayISO() } : p
-          ),
-        }));
-      },
-
-      addCashEntry: (data) => {
-        set((s) => ({
-          cashBook: [{ ...data, id: nextId("cb") }, ...s.cashBook],
-        }));
-      },
-
-      addRefund: (data) => {
-        const refund: Refund = { ...data, id: nextId("r"), createdAt: todayISO() };
-        set((s) => ({
-          refunds: [refund, ...s.refunds],
-          activityLogs: pushLog(
-            s.activityLogs,
-            s.currentUser,
-            "CREATE",
-            "Refunds",
-            `Refund ${refund.bookingId} — ${refund.refundType}`
-          ),
-        }));
-      },
-
-      addUser: (data) => {
-        const user: AppUser = { ...data, id: nextId("u"), createdAt: todayISO() };
-        set((s) => ({
-          users: [...s.users, user],
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "CREATE", "Users", `Created user ${user.username}`),
-        }));
-      },
-
-      updateUser: (id, data) => {
-        set((s) => ({
-          users: s.users.map((u) => (u.id === id ? { ...u, ...data } : u)),
-          currentUser: s.currentUser?.id === id ? { ...s.currentUser, ...data } : s.currentUser,
-        }));
-      },
-
-      updateUserPermissions: (id, permissions) => {
-        set((s) => ({
-          users: s.users.map((u) => (u.id === id ? { ...u, permissions } : u)),
-          currentUser:
-            s.currentUser?.id === id ? { ...s.currentUser, permissions } : s.currentUser,
-          activityLogs: pushLog(s.activityLogs, s.currentUser, "UPDATE", "Users", `Updated permissions for ${id}`),
-        }));
-      },
-    }),
-    {
-      name: "al-noor-travels-store",
-      partialize: (s) => {
-        const { currentUser, login, logout, resetDemo, logActivity, ...rest } = s;
-        // persist data + session
-        void login;
-        void logout;
-        void resetDemo;
-        void logActivity;
-        return { ...rest, currentUser };
-      },
+  hydrateFromServer: async () => {
+    set({ loading: true });
+    try {
+      await auth.me();
+      const payload = await fetchBootstrap();
+      applyBootstrap(set, payload);
+      return true;
+    } catch {
+      set({ ...EMPTY, currentUser: null, hydrated: true, loading: false });
+      return false;
     }
-  )
-);
+  },
+
+  login: async (username, password) => {
+    try {
+      await auth.login(username, password);
+      const payload = await fetchBootstrap();
+      applyBootstrap(set, payload);
+      return { ok: true, message: "Welcome" };
+    } catch (error) {
+      return { ok: false, message: errMessage(error, "Login failed") };
+    }
+  },
+
+  logout: async () => {
+    try {
+      await auth.logout();
+    } catch {
+      /* ignore */
+    }
+    set({ ...EMPTY, currentUser: null, hydrated: true, loading: false });
+  },
+
+  resetDemo: async () => {
+    await seedApi.run(true);
+    const payload = await fetchBootstrap();
+    applyBootstrap(set, payload);
+  },
+
+  logActivity: (action, module, details) => {
+    void apiLogActivity(action, module, details)
+      .then((entry) => set((s) => ({ activityLogs: [entry, ...s.activityLogs].slice(0, 500) })))
+      .catch(() => undefined);
+  },
+
+  addCustomer: async (payload) => {
+    const created = await data.create<Customer>("customers", { ...payload, outstanding: 0 });
+    set((s) => ({ customers: [created, ...s.customers] }));
+  },
+
+  updateCustomer: async (id, patch) => {
+    const updated = await data.update<Customer>("customers", id, patch);
+    set((s) => ({ customers: s.customers.map((c) => (c.id === id ? updated : c)) }));
+  },
+
+  deleteCustomer: async (id) => {
+    await data.remove("customers", id);
+    set((s) => ({ customers: s.customers.filter((c) => c.id !== id) }));
+  },
+
+  addSupplier: async (payload) => {
+    const created = await data.create<Supplier>("suppliers", { ...payload, outstanding: 0 });
+    set((s) => ({ suppliers: [created, ...s.suppliers] }));
+  },
+
+  updateSupplier: async (id, patch) => {
+    const updated = await data.update<Supplier>("suppliers", id, patch);
+    set((s) => ({ suppliers: s.suppliers.map((x) => (x.id === id ? updated : x)) }));
+  },
+
+  addTicket: async (payload) => {
+    const created = await data.create<AirTicket>("airTickets", payload);
+    set((s) => ({ airTickets: [created, ...s.airTickets] }));
+  },
+
+  updateTicket: async (id, patch) => {
+    const updated = await data.update<AirTicket>("airTickets", id, patch);
+    set((s) => ({ airTickets: s.airTickets.map((t) => (t.id === id ? updated : t)) }));
+  },
+
+  deleteTicket: async (id) => {
+    await data.remove("airTickets", id);
+    set((s) => ({ airTickets: s.airTickets.filter((t) => t.id !== id) }));
+  },
+
+  addVisa: async (payload) => {
+    const created = await data.create<VisaRecord>("visas", payload);
+    set((s) => ({ visas: [created, ...s.visas] }));
+  },
+
+  updateVisa: async (id, patch) => {
+    const updated = await data.update<VisaRecord>("visas", id, patch);
+    set((s) => ({ visas: s.visas.map((v) => (v.id === id ? updated : v)) }));
+  },
+
+  addHotel: async (payload) => {
+    const created = await data.create<HotelBooking>("hotels", payload);
+    set((s) => ({ hotels: [created, ...s.hotels] }));
+  },
+
+  updateHotel: async (id, patch) => {
+    const updated = await data.update<HotelBooking>("hotels", id, patch);
+    set((s) => ({ hotels: s.hotels.map((h) => (h.id === id ? updated : h)) }));
+  },
+
+  addTransport: async (payload) => {
+    const created = await data.create<TransportBooking>("transports", payload);
+    set((s) => ({ transports: [created, ...s.transports] }));
+  },
+
+  updateTransport: async (id, patch) => {
+    const updated = await data.update<TransportBooking>("transports", id, patch);
+    set((s) => ({ transports: s.transports.map((t) => (t.id === id ? updated : t)) }));
+  },
+
+  addUmrah: async (payload) => {
+    const created = await data.create<UmrahPackage>("umrahPackages", payload);
+    set((s) => ({ umrahPackages: [created, ...s.umrahPackages] }));
+  },
+
+  updateUmrah: async (id, patch) => {
+    const updated = await data.update<UmrahPackage>("umrahPackages", id, patch);
+    set((s) => ({ umrahPackages: s.umrahPackages.map((u) => (u.id === id ? updated : u)) }));
+  },
+
+  addTour: async (payload) => {
+    const created = await data.create<TourPackage>("tourPackages", payload);
+    set((s) => ({ tourPackages: [created, ...s.tourPackages] }));
+  },
+
+  addInsurance: async (payload) => {
+    const created = await data.create<InsuranceRecord>("insurance", payload);
+    set((s) => ({ insurance: [created, ...s.insurance] }));
+  },
+
+  addPayment: async (payload) => {
+    const created = await data.create<Payment>("payments", payload);
+    set((s) => ({ payments: [created, ...s.payments] }));
+  },
+
+  markPaymentPaid: async (id) => {
+    const updated = await data.update<Payment>("payments", id, {
+      status: "Paid",
+      paidDate: todayISO(),
+    });
+    set((s) => ({ payments: s.payments.map((p) => (p.id === id ? updated : p)) }));
+  },
+
+  addCashEntry: async (payload) => {
+    const created = await data.create<CashEntry>("cashBook", payload);
+    set((s) => ({ cashBook: [created, ...s.cashBook] }));
+  },
+
+  addRefund: async (payload) => {
+    const created = await data.create<Refund>("refunds", payload);
+    set((s) => ({ refunds: [created, ...s.refunds] }));
+  },
+
+  addUser: async (payload) => {
+    const created = await data.create<PublicUser>("users", payload);
+    set((s) => ({
+      users: [...s.users, created as unknown as AppUser],
+    }));
+  },
+
+  updateUser: async (id, patch) => {
+    const updated = await data.update<PublicUser>("users", id, patch);
+    set((s) => ({
+      users: s.users.map((u) => (u.id === id ? ({ ...u, ...updated } as AppUser) : u)),
+      currentUser: s.currentUser?.id === id ? { ...s.currentUser, ...updated } : s.currentUser,
+    }));
+  },
+
+  updateUserPermissions: async (id, permissions) => {
+    await get().updateUser(id, { permissions });
+  },
+}));

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plane } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -10,20 +10,34 @@ export default function LoginPage() {
   const router = useRouter();
   const login = useAppStore((s) => s.login);
   const user = useAppStore((s) => s.currentUser);
+  const hydrateFromServer = useAppStore((s) => s.hydrateFromServer);
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  if (user) {
-    router.replace("/dashboard");
-  }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ok = await hydrateFromServer();
+      if (!cancelled && ok) router.replace("/dashboard");
+      if (!cancelled) setChecking(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrateFromServer, router]);
 
-  const onSubmit = (e: FormEvent) => {
+  useEffect(() => {
+    if (!checking && user) router.replace("/dashboard");
+  }, [checking, user, router]);
+
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const res = login(username.trim(), password);
+    const res = await login(username.trim(), password);
     setLoading(false);
     if (!res.ok) {
       setError(res.message);
@@ -31,6 +45,14 @@ export default function LoginPage() {
     }
     router.replace("/dashboard");
   };
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0f1c3f]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0f1c3f] p-4">
@@ -46,6 +68,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Al-Noor Travels</h1>
           <p className="mt-1 text-sm text-slate-500">Travel Agency Management Portal</p>
+          <p className="mt-2 text-[11px] font-medium text-emerald-600">Connected to MongoDB Atlas</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -73,7 +96,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-          <p className="font-semibold text-slate-700">Demo accounts</p>
+          <p className="font-semibold text-slate-700">Demo accounts (seeded on first login)</p>
           <p className="mt-1">Super Admin: <code>admin</code> / <code>admin123</code></p>
           <p>Staff (no profit/cost): <code>staff</code> / <code>staff123</code></p>
         </div>

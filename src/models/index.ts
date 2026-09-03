@@ -19,12 +19,21 @@ import type {
 } from "@/lib/types";
 
 /**
+ * Schemas are declared as `Schema<SchemaRecord>` rather than letting mongoose
+ * infer a document type from the definition: inference costs the compiler
+ * ~60s per schema (and runs the whole typecheck out of memory), while an
+ * explicit generic short-circuits it. The concrete record types are applied
+ * at the model boundary instead, via `registerModel`.
+ */
+type SchemaRecord = Record<string, unknown>;
+
+/**
  * Every collection carries the frontend-facing string `id` as its own unique
  * field (e.g. `c1`, `t-lx9y-8f2a`) so records stay interchangeable with the
  * client store. Mongo's `_id` is still there but never surfaced to the client.
  */
 const baseOptions = {
-  versionKey: false,
+  versionKey: false as const,
   minimize: false,
   toJSON: {
     transform(_doc: unknown, ret: Record<string, unknown>) {
@@ -32,21 +41,21 @@ const baseOptions = {
       return ret;
     },
   },
-} as const;
+};
 
 function idField() {
   return { type: String, required: true, unique: true, index: true };
 }
 
 /** Reuse the model if it was already compiled (dev server hot reloads). */
-function registerModel<T>(name: string, schema: Schema): Model<T> {
+function registerModel<T>(name: string, schema: Schema<SchemaRecord>): Model<T> {
   return (
     (mongoose.models[name] as Model<T> | undefined) ??
-    mongoose.model<T>(name, schema)
+    (mongoose.model(name, schema) as unknown as Model<T>)
   );
 }
 
-const permissionsSchema = new Schema(
+const permissionsSchema = new Schema<SchemaRecord>(
   {
     viewCost: { type: Boolean, default: false },
     viewProfit: { type: Boolean, default: false },
@@ -62,7 +71,7 @@ const permissionsSchema = new Schema(
   { _id: false }
 );
 
-const userSchema = new Schema(
+const userSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     username: { type: String, required: true, unique: true, index: true },
@@ -78,7 +87,7 @@ const userSchema = new Schema(
   baseOptions
 );
 
-const customerSchema = new Schema(
+const customerSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     customerId: { type: String, required: true, index: true },
@@ -94,7 +103,7 @@ const customerSchema = new Schema(
   baseOptions
 );
 
-const supplierSchema = new Schema(
+const supplierSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     name: { type: String, required: true },
@@ -107,7 +116,7 @@ const supplierSchema = new Schema(
   baseOptions
 );
 
-const airTicketSchema = new Schema(
+const airTicketSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     bookingId: { type: String, required: true, index: true },
@@ -132,7 +141,7 @@ const airTicketSchema = new Schema(
   baseOptions
 );
 
-const visaSchema = new Schema(
+const visaSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     bookingId: { type: String, required: true, index: true },
@@ -153,7 +162,7 @@ const visaSchema = new Schema(
   baseOptions
 );
 
-const hotelSchema = new Schema(
+const hotelSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     bookingId: { type: String, required: true, index: true },
@@ -174,7 +183,7 @@ const hotelSchema = new Schema(
   baseOptions
 );
 
-const transportSchema = new Schema(
+const transportSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     bookingId: { type: String, required: true, index: true },
@@ -196,7 +205,7 @@ const transportSchema = new Schema(
   baseOptions
 );
 
-const umrahPackageSchema = new Schema(
+const umrahPackageSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     bookingId: { type: String, required: true, index: true },
@@ -218,7 +227,7 @@ const umrahPackageSchema = new Schema(
   baseOptions
 );
 
-const tourPackageSchema = new Schema(
+const tourPackageSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     bookingId: { type: String, required: true, index: true },
@@ -237,7 +246,7 @@ const tourPackageSchema = new Schema(
   baseOptions
 );
 
-const insuranceSchema = new Schema(
+const insuranceSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     bookingId: { type: String, required: true, index: true },
@@ -258,7 +267,7 @@ const insuranceSchema = new Schema(
   baseOptions
 );
 
-const paymentSchema = new Schema(
+const paymentSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     type: { type: String, enum: ["Customer", "Supplier"], default: "Customer" },
@@ -276,7 +285,7 @@ const paymentSchema = new Schema(
   baseOptions
 );
 
-const cashEntrySchema = new Schema(
+const cashEntrySchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     type: { type: String, enum: ["Income", "Expense"], default: "Income" },
@@ -291,7 +300,7 @@ const cashEntrySchema = new Schema(
   baseOptions
 );
 
-const refundSchema = new Schema(
+const refundSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     serviceType: { type: String, default: "air_ticket" },
@@ -310,7 +319,7 @@ const refundSchema = new Schema(
   baseOptions
 );
 
-const activityLogSchema = new Schema(
+const activityLogSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     userId: { type: String, index: true },
@@ -330,7 +339,7 @@ export interface AppSettingsDoc {
   ratesUpdatedAt?: string;
 }
 
-const appSettingsSchema = new Schema(
+const appSettingsSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     exchangeRates: {
@@ -354,7 +363,7 @@ export interface BackupDoc {
   data: unknown;
 }
 
-const backupSchema = new Schema(
+const backupSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
     createdAt: { type: String, required: true },
