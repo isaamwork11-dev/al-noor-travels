@@ -128,7 +128,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Database */}
-        <Card title="Database">
+        {/* <Card title="Database">
           <p className="mb-2 text-xs font-medium text-emerald-700">
             MongoDB Atlas connected
           </p>
@@ -141,7 +141,7 @@ export default function SettingsPage() {
           {resetMsg && (
             <p className="mt-3 text-sm font-medium text-emerald-700">{resetMsg}</p>
           )}
-        </Card>
+        </Card> */}
 
       </div>
     </div>

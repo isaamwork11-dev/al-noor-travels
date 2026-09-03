@@ -17,9 +17,7 @@ import { useAppStore } from "@/lib/store";
 import { formatPKR } from "@/lib/format";
 import {
   Card,
-  Input,
   PageHeader,
-  Select,
   StatCard,
   StatusBadge,
 } from "@/components/ui";
@@ -36,8 +34,6 @@ export default function DashboardPage() {
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const tourPackages = useAppStore((s) => s.tourPackages);
   const payments = useAppStore((s) => s.payments);
-  const exchangeRates = useAppStore((s) => s.exchangeRates);
-
   const showCost = user?.permissions.viewCost || user?.role === "super_admin";
   const showProfit = user?.permissions.viewProfit || user?.role === "super_admin";
   const showFinancials = !!(showCost || showProfit);
@@ -61,15 +57,6 @@ export default function DashboardPage() {
   const totalProfit = totalSales - totalCost;
   const receivables = customers.reduce((a, c) => a + c.outstanding, 0);
 
-  // Currency Converter: all foreign currencies → PKR
-  const FOREIGN_CURRENCIES = ["SAR", "AED", "USD", "EUR", "GBP", "OMR", "BHD", "KWD", "TRY", "CNY"] as const;
-  type ForeignCurrency = (typeof FOREIGN_CURRENCIES)[number];
-  const [convAmount, setConvAmount] = useState<string>("20");
-  const [convCurrency, setConvCurrency] = useState<ForeignCurrency>("SAR");
-  const convNumber = parseFloat(convAmount) || 0;
-  const convRate = exchangeRates[convCurrency] ?? 0;
-  // rate stored as "1 foreign = X PKR", so multiply directly
-  const convPKR = Math.round(convNumber * convRate);
 
   const getCustomerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
@@ -215,41 +202,6 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="mb-5">
-        <Card title="Currency Converter (to PKR)">
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 md:items-end">
-            <Input
-              label="Amount"
-              type="number"
-              min={0}
-              step="0.01"
-              value={convAmount}
-              onChange={(e) => setConvAmount(e.target.value)}
-            />
-            <Select
-              label="Currency"
-              value={convCurrency}
-              onChange={(e) => setConvCurrency(e.target.value as ForeignCurrency)}
-            >
-              {FOREIGN_CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Select>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-medium text-slate-500">Result in PKR</p>
-              <p className="mt-1 text-xl font-bold text-slate-900">{formatPKR(convPKR)}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-blue-50 p-4">
-              <p className="text-xs font-medium text-slate-500">Rate used</p>
-              <p className="mt-1 text-sm font-semibold text-blue-700">
-                1 {convCurrency} = PKR {convRate.toLocaleString("en-PK")}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
 
       <div className="mb-5 grid gap-4 xl:grid-cols-3">
         <Card title="Upcoming Bookings" className="xl:col-span-1">
