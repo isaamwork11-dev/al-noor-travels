@@ -36,11 +36,39 @@ export function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Full ISO timestamp for createdAt / updatedAt tracking. */
+export function nowISO(): string {
+  return new Date().toISOString();
+}
+
+/** Convert SAR → PKR using the rate the user entered for that transaction. */
+export function sarToPkr(costSAR: number, exchangeRate: number): number {
+  const sar = Number(costSAR) || 0;
+  const rate = Number(exchangeRate) || 0;
+  return Math.round(sar * rate);
+}
+
 export function formatDate(date: string): string {
   if (!date) return "—";
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return date;
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+/** Shows date + time when a full ISO timestamp is available. */
+export function formatDateTime(date: string): string {
+  if (!date) return "—";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return date;
+  const hasTime = date.includes("T") || date.includes(":");
+  if (!hasTime) return formatDate(date);
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function formatDateLong(): string {

@@ -16,7 +16,7 @@ import {
   stripProtectedFields,
   type DbRecord,
 } from "@/lib/api-helpers";
-import { nextId, todayISO } from "@/lib/format";
+import { nextId, nowISO } from "@/lib/format";
 import { AppSettings, SETTINGS_ID, User } from "@/models";
 
 export const dynamic = "force-dynamic";
@@ -109,12 +109,12 @@ export async function POST(request: NextRequest, ctx: Context) {
     const record = await applyDerivedFields(collection, payload);
 
     record.id = typeof record.id === "string" && record.id ? record.id : nextId(config.idPrefix);
+    const stamp = nowISO();
     record.createdAt =
       typeof record.createdAt === "string" && record.createdAt
         ? record.createdAt
-        : collection === "activityLogs"
-          ? new Date().toISOString()
-          : todayISO();
+        : stamp;
+    record.updatedAt = stamp;
 
     if (config.service && !record.bookingId) {
       record.bookingId = await nextBookingIdFromDb();

@@ -14,6 +14,7 @@ import {
   type DbRecord,
 } from "@/lib/api-helpers";
 import { User } from "@/models";
+import { nowISO } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,7 @@ export async function PATCH(request: NextRequest, ctx: Context) {
     delete payload.createdAt;
 
     const update = await applyDerivedFields(collection, payload, previous);
+    update.updatedAt = nowISO();
 
     if (collection === "users") {
       if (typeof update.username === "string" && update.username !== previous.username) {

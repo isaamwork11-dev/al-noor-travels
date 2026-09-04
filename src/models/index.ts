@@ -14,6 +14,7 @@ import type {
   Supplier as SupplierType,
   TourPackage as TourPackageType,
   TransportBooking,
+  TravelBooking as TravelBookingType,
   UmrahPackage as UmrahPackageType,
   VisaRecord,
 } from "@/lib/types";
@@ -135,8 +136,11 @@ const airTicketSchema = new Schema<SchemaRecord>(
     profit: { type: Number, default: 0 },
     status: { type: String, default: "Pending" },
     currency: { type: String, default: "PKR" },
+    costSAR: { type: Number, default: 0 },
+    exchangeRate: { type: Number, default: 0 },
     createdBy: { type: String, default: "" },
     createdAt: { type: String, required: true },
+    updatedAt: { type: String },
   },
   baseOptions
 );
@@ -156,8 +160,11 @@ const visaSchema = new Schema<SchemaRecord>(
     salePrice: { type: Number, default: 0 },
     profit: { type: Number, default: 0 },
     status: { type: String, default: "Pending" },
+    costSAR: { type: Number, default: 0 },
+    exchangeRate: { type: Number, default: 0 },
     createdBy: { type: String, default: "" },
     createdAt: { type: String, required: true },
+    updatedAt: { type: String },
   },
   baseOptions
 );
@@ -177,8 +184,11 @@ const hotelSchema = new Schema<SchemaRecord>(
     salePrice: { type: Number, default: 0 },
     profit: { type: Number, default: 0 },
     status: { type: String, default: "Pending" },
+    costSAR: { type: Number, default: 0 },
+    exchangeRate: { type: Number, default: 0 },
     createdBy: { type: String, default: "" },
     createdAt: { type: String, required: true },
+    updatedAt: { type: String },
   },
   baseOptions
 );
@@ -199,8 +209,11 @@ const transportSchema = new Schema<SchemaRecord>(
     salePrice: { type: Number, default: 0 },
     profit: { type: Number, default: 0 },
     status: { type: String, default: "Pending" },
+    costSAR: { type: Number, default: 0 },
+    exchangeRate: { type: Number, default: 0 },
     createdBy: { type: String, default: "" },
     createdAt: { type: String, required: true },
+    updatedAt: { type: String },
   },
   baseOptions
 );
@@ -263,6 +276,68 @@ const insuranceSchema = new Schema<SchemaRecord>(
     currency: { type: String, default: "PKR" },
     createdBy: { type: String, default: "" },
     createdAt: { type: String, required: true },
+    updatedAt: { type: String },
+  },
+  baseOptions
+);
+
+const bookingTicketLineSchema = new Schema<SchemaRecord>(
+  {
+    id: { type: String, required: true },
+    passengerName: { type: String, default: "" },
+    airline: { type: String, default: "" },
+    pnr: { type: String, default: "" },
+    ticketNumber: { type: String, default: "" },
+    sector: { type: String, default: "" },
+    travelDate: { type: String, default: "" },
+    supplierId: { type: String, default: "" },
+    costSAR: { type: Number, default: 0 },
+    exchangeRate: { type: Number, default: 0 },
+    costPKR: { type: Number, default: 0 },
+    salePrice: { type: Number, default: 0 },
+    profit: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const bookingServiceItemSchema = new Schema<SchemaRecord>(
+  {
+    id: { type: String, required: true },
+    kind: {
+      type: String,
+      enum: ["visa", "hotel", "transport", "ticket"],
+      required: true,
+    },
+    supplierId: { type: String, default: "" },
+    title: { type: String, default: "" },
+    details: { type: Schema.Types.Mixed, default: {} },
+    costSAR: { type: Number, default: 0 },
+    exchangeRate: { type: Number, default: 0 },
+    costPKR: { type: Number, default: 0 },
+    salePrice: { type: Number, default: 0 },
+    profit: { type: Number, default: 0 },
+    tickets: { type: [bookingTicketLineSchema], default: undefined },
+  },
+  { _id: false }
+);
+
+const travelBookingSchema = new Schema<SchemaRecord>(
+  {
+    id: idField(),
+    bookingId: { type: String, required: true, index: true },
+    customerId: { type: String, index: true },
+    title: { type: String, default: "" },
+    travelDate: { type: String, default: "" },
+    returnDate: { type: String, default: "" },
+    status: { type: String, default: "Pending" },
+    notes: { type: String, default: "" },
+    services: { type: [bookingServiceItemSchema], default: [] },
+    totalCostPKR: { type: Number, default: 0 },
+    totalSale: { type: Number, default: 0 },
+    totalProfit: { type: Number, default: 0 },
+    createdBy: { type: String, default: "" },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
   },
   baseOptions
 );
@@ -392,6 +467,7 @@ export const Transport = registerModel<TransportBooking>("Transport", transportS
 export const UmrahPackage = registerModel<UmrahPackageType>("UmrahPackage", umrahPackageSchema);
 export const TourPackage = registerModel<TourPackageType>("TourPackage", tourPackageSchema);
 export const Insurance = registerModel<InsuranceRecord>("Insurance", insuranceSchema);
+export const TravelBooking = registerModel<TravelBookingType>("TravelBooking", travelBookingSchema);
 export const Payment = registerModel<PaymentType>("Payment", paymentSchema);
 export const CashEntry = registerModel<CashEntryType>("CashEntry", cashEntrySchema);
 export const Refund = registerModel<RefundType>("Refund", refundSchema);

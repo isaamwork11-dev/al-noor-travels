@@ -68,6 +68,7 @@ export type CollectionName =
   | "umrahPackages"
   | "tourPackages"
   | "insurance"
+  | "travelBookings"
   | "payments"
   | "cashBook"
   | "refunds"

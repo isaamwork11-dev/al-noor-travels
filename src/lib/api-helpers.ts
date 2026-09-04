@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { Model } from "mongoose";
 import { MissingMongoUriError } from "./db";
-import { calcProfit, nextBookingId, nextId, toPKR } from "./format";
-import type { Currency, ExchangeRates, UserPermissions } from "./types";
+import { calcProfit, nextBookingId, nextId, sarToPkr, toPKR } from "./format";
+import { normalizeTravelBooking } from "./booking-calc";
+import type { Currency, ExchangeRates, TravelBooking as TravelBookingType, UserPermissions } from "./types";
 import type { Session } from "./auth-server";
 import type { AppSettingsDoc } from "@/models";
 import {
@@ -19,6 +20,7 @@ import {
   Supplier,
   TourPackage,
   Transport,
+  TravelBooking,
   UmrahPackage,
   User,
   Visa,
@@ -66,6 +68,7 @@ export type CollectionKey =
   | "umrahPackages"
   | "tourPackages"
   | "insurance"
+  | "travelBookings"
   | "payments"
   | "cashBook"
   | "refunds"
@@ -134,6 +137,13 @@ export const COLLECTIONS: Record<CollectionKey, CollectionConfig> = {
     model: Insurance as unknown as CollectionModel,
     module: "Insurance",
     idPrefix: "in",
+    service: true,
+    sortField: "createdAt",
+  },
+  travelBookings: {
+    model: TravelBooking as unknown as CollectionModel,
+    module: "Bookings",
+    idPrefix: "tb",
     service: true,
     sortField: "createdAt",
   },
@@ -300,6 +310,12 @@ const NUMERIC_FIELDS = [
   "airlineCharges",
   "serviceCharges",
   "refundAmount",
+  "costSAR",
+  "exchangeRate",
+  "costPKR",
+  "totalCostPKR",
+  "totalSale",
+  "totalProfit",
 ];
 
 /**
@@ -320,7 +336,31 @@ export async function applyDerivedFields(
     }
   }
 
+  if (collection === "travelBookings") {
+    const normalized = normalizeTravelBooking({
+      customerId: String(next.customerId ?? previous?.customerId ?? ""),
+      services: (next.services ?? previous?.services ?? []) as TravelBookingType["services"],
+    });
+    next.services = normalized.services;
+    next.totalCostPKR = normalized.totalCostPKR;
+    next.totalSale = normalized.totalSale;
+    next.totalProfit = normalized.totalProfit;
+    // Mirror totals onto costPrice/salePrice/profit so reports that expect them still work.
+    next.costPrice = normalized.totalCostPKR;
+    next.salePrice = normalized.totalSale;
+    next.profit = normalized.totalProfit;
+    return next;
+  }
+
   if (COLLECTIONS[collection].service) {
+    // Prefer SAR + locked rate when provided; otherwise keep legacy PKR costPrice.
+    const costSAR = Number(next.costSAR ?? previous?.costSAR ?? 0);
+    const exchangeRate = Number(next.exchangeRate ?? previous?.exchangeRate ?? 0);
+    if (costSAR > 0 && exchangeRate > 0) {
+      next.costSAR = costSAR;
+      next.exchangeRate = exchangeRate;
+      next.costPrice = sarToPkr(costSAR, exchangeRate);
+    }
     const cost = Number(next.costPrice ?? previous?.costPrice ?? 0);
     const sale = Number(next.salePrice ?? previous?.salePrice ?? 0);
     next.profit = calcProfit(cost, sale);

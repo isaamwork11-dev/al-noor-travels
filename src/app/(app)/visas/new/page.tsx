@@ -3,8 +3,9 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
-import { calcProfit, todayISO } from "@/lib/format";
+import { todayISO } from "@/lib/format";
 import type { VisaRecord } from "@/lib/types";
+import { SarCostFields } from "@/components/SarCostFields";
 import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 
 const visaTypes: VisaRecord["visaType"][] = [
@@ -30,7 +31,8 @@ export default function NewVisaPage() {
     submissionDate: todayISO(),
     approvalDate: "",
     expiryDate: "",
-    costPrice: 0,
+    costSAR: 0,
+    exchangeRate: 73.9,
     salePrice: 0,
     status: "In Process" as VisaRecord["status"],
   });
@@ -40,7 +42,9 @@ export default function NewVisaPage() {
     if (!user) return;
     addVisa({
       ...form,
-      costPrice: Number(form.costPrice),
+      costSAR: Number(form.costSAR),
+      exchangeRate: Number(form.exchangeRate),
+      costPrice: 0, // server derives from SAR × rate
       salePrice: Number(form.salePrice),
       approvalDate: form.approvalDate || undefined,
       expiryDate: form.expiryDate || undefined,
@@ -107,23 +111,25 @@ export default function NewVisaPage() {
             value={form.expiryDate}
             onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
           />
-          {showCost && (
+          {showCost ? (
+            <div className="sm:col-span-2 lg:col-span-3">
+              <SarCostFields
+                costSAR={form.costSAR}
+                exchangeRate={form.exchangeRate}
+                salePrice={form.salePrice}
+                onChange={(patch) => setForm({ ...form, ...patch })}
+              />
+            </div>
+          ) : (
             <Input
-              label="Cost Price (PKR)"
+              label="Sale Price (PKR)"
               type="number"
               min={0}
-              value={form.costPrice}
-              onChange={(e) => setForm({ ...form, costPrice: Number(e.target.value) })}
+              required
+              value={form.salePrice}
+              onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })}
             />
           )}
-          <Input
-            label="Sale Price (PKR)"
-            type="number"
-            min={0}
-            required
-            value={form.salePrice}
-            onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })}
-          />
           <Select
             label="Status"
             value={form.status}
@@ -135,11 +141,6 @@ export default function NewVisaPage() {
               </option>
             ))}
           </Select>
-          {showCost && (
-            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 sm:col-span-2 lg:col-span-3">
-              Estimated profit: PKR {calcProfit(Number(form.costPrice), Number(form.salePrice)).toLocaleString("en-PK")}
-            </div>
-          )}
           <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-3">
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel

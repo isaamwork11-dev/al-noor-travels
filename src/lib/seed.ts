@@ -36,6 +36,7 @@ const SEED_SOURCES: Record<CollectionKey, DbRecord[]> = {
   umrahPackages: DEMO_DATA.umrahPackages as unknown as DbRecord[],
   tourPackages: DEMO_DATA.tourPackages as unknown as DbRecord[],
   insurance: [SAMPLE_INSURANCE] as unknown as DbRecord[],
+  travelBookings: (DEMO_DATA.travelBookings ?? []) as unknown as DbRecord[],
   payments: DEMO_DATA.payments as unknown as DbRecord[],
   cashBook: DEMO_DATA.cashBook as unknown as DbRecord[],
   refunds: DEMO_DATA.refunds as unknown as DbRecord[],

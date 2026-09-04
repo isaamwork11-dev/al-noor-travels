@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const transports = useAppStore((s) => s.transports);
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const tourPackages = useAppStore((s) => s.tourPackages);
+  const travelBookings = useAppStore((s) => s.travelBookings);
   const payments = useAppStore((s) => s.payments);
   const showCost = user?.permissions.viewCost || user?.role === "super_admin";
   const showProfit = user?.permissions.viewProfit || user?.role === "super_admin";
@@ -44,7 +45,8 @@ export default function DashboardPage() {
     hotels.reduce((a, t) => a + t.salePrice, 0) +
     transports.reduce((a, t) => a + t.salePrice, 0) +
     umrahPackages.reduce((a, t) => a + t.salePrice, 0) +
-    tourPackages.reduce((a, t) => a + t.salePrice, 0);
+    tourPackages.reduce((a, t) => a + t.salePrice, 0) +
+    travelBookings.reduce((a, t) => a + t.totalSale, 0);
 
   const totalCost =
     airTickets.reduce((a, t) => a + t.costPrice, 0) +
@@ -52,7 +54,8 @@ export default function DashboardPage() {
     hotels.reduce((a, t) => a + t.costPrice, 0) +
     transports.reduce((a, t) => a + t.costPrice, 0) +
     umrahPackages.reduce((a, t) => a + t.costPrice, 0) +
-    tourPackages.reduce((a, t) => a + t.costPrice, 0);
+    tourPackages.reduce((a, t) => a + t.costPrice, 0) +
+    travelBookings.reduce((a, t) => a + t.totalCostPKR, 0);
 
   const totalProfit = totalSales - totalCost;
   const receivables = customers.reduce((a, c) => a + c.outstanding, 0);

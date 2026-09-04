@@ -26,6 +26,7 @@ import type {
   Supplier,
   TourPackage,
   TransportBooking,
+  TravelBooking,
   UmrahPackage,
   UserPermissions,
   VisaRecord,
@@ -42,6 +43,7 @@ const EMPTY: AppState = {
   umrahPackages: [],
   tourPackages: [],
   insurance: [],
+  travelBookings: [],
   payments: [],
   cashBook: [],
   refunds: [],
@@ -84,6 +86,20 @@ interface DataActions {
   addInsurance: (
     data: Omit<InsuranceRecord, "id" | "bookingId" | "profit" | "createdAt">
   ) => Promise<void>;
+  addTravelBooking: (
+    data: Omit<
+      TravelBooking,
+      | "id"
+      | "bookingId"
+      | "totalCostPKR"
+      | "totalSale"
+      | "totalProfit"
+      | "createdAt"
+      | "updatedAt"
+    >
+  ) => Promise<void>;
+  updateTravelBooking: (id: string, patch: Partial<TravelBooking>) => Promise<void>;
+  deleteTravelBooking: (id: string) => Promise<void>;
   addPayment: (data: Omit<Payment, "id" | "createdAt">) => Promise<void>;
   markPaymentPaid: (id: string) => Promise<void>;
   addCashEntry: (data: Omit<CashEntry, "id">) => Promise<void>;
@@ -107,6 +123,7 @@ function applyBootstrap(set: (partial: Partial<Store>) => void, payload: Bootstr
     umrahPackages: payload.umrahPackages,
     tourPackages: payload.tourPackages,
     insurance: payload.insurance ?? [],
+    travelBookings: payload.travelBookings ?? [],
     payments: payload.payments,
     cashBook: payload.cashBook,
     refunds: payload.refunds,
@@ -265,6 +282,23 @@ export const useAppStore = create<Store>((set, get) => ({
   addInsurance: async (payload) => {
     const created = await data.create<InsuranceRecord>("insurance", payload);
     set((s) => ({ insurance: [created, ...s.insurance] }));
+  },
+
+  addTravelBooking: async (payload) => {
+    const created = await data.create<TravelBooking>("travelBookings", payload);
+    set((s) => ({ travelBookings: [created, ...s.travelBookings] }));
+  },
+
+  updateTravelBooking: async (id, patch) => {
+    const updated = await data.update<TravelBooking>("travelBookings", id, patch);
+    set((s) => ({
+      travelBookings: s.travelBookings.map((b) => (b.id === id ? updated : b)),
+    }));
+  },
+
+  deleteTravelBooking: async (id) => {
+    await data.remove("travelBookings", id);
+    set((s) => ({ travelBookings: s.travelBookings.filter((b) => b.id !== id) }));
   },
 
   addPayment: async (payload) => {

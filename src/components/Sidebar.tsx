@@ -21,6 +21,7 @@ import {
   ScrollText,
   ChevronDown,
   Shield,
+  BookOpen,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "./ui";
@@ -29,6 +30,14 @@ import { useAppStore } from "@/lib/store";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/customers", label: "Customers (CRM)", icon: Users },
+  {
+    label: "Travel Bookings",
+    icon: BookOpen,
+    children: [
+      { href: "/bookings", label: "All Bookings" },
+      { href: "/bookings/new", label: "New Booking" },
+    ],
+  },
   {
     label: "Air Tickets",
     icon: Plane,
@@ -115,6 +124,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   const canCreateRecords = isSuperAdmin || !!user?.permissions.createRecords;
 
   const [expanded, setExpanded] = useState<string[]>([
+    "Travel Bookings",
     "Air Tickets",
     "Visa Management",
     "Umrah Management",

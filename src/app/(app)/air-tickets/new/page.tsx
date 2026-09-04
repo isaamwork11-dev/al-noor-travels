@@ -3,8 +3,9 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
-import { calcProfit, todayISO } from "@/lib/format";
+import { calcProfit, sarToPkr, todayISO } from "@/lib/format";
 import type { BookingStatus, Currency } from "@/lib/types";
+import { SarCostFields } from "@/components/SarCostFields";
 import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 
 export default function NewAirTicketPage() {
@@ -14,6 +15,7 @@ export default function NewAirTicketPage() {
   const suppliers = useAppStore((s) => s.suppliers);
   const addTicket = useAppStore((s) => s.addTicket);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
+  const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
 
   const [form, setForm] = useState({
     passengerName: "",
@@ -26,19 +28,35 @@ export default function NewAirTicketPage() {
     travelDate: todayISO(),
     flightTime: "",
     supplierId: suppliers[0]?.id || "",
-    costPrice: 0,
+    costSAR: 0,
+    exchangeRate: 73.9,
     salePrice: 0,
     status: "Confirmed" as BookingStatus,
     currency: "PKR" as Currency,
   });
 
+  const costPKR = sarToPkr(form.costSAR, form.exchangeRate);
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
     addTicket({
-      ...form,
-      costPrice: Number(form.costPrice),
+      passengerName: form.passengerName,
+      customerId: form.customerId,
+      airline: form.airline,
+      pnr: form.pnr,
+      ticketNumber: form.ticketNumber,
+      sector: form.sector,
+      issueDate: form.issueDate,
+      travelDate: form.travelDate,
+      flightTime: form.flightTime,
+      supplierId: form.supplierId,
+      costSAR: form.costSAR,
+      exchangeRate: form.exchangeRate,
+      costPrice: costPKR,
       salePrice: Number(form.salePrice),
+      status: form.status,
+      currency: form.currency,
       createdBy: user.id,
     });
     router.push("/air-tickets");
@@ -48,111 +66,118 @@ export default function NewAirTicketPage() {
     <div>
       <PageHeader title="Add Air Ticket" breadcrumb="Home / Air Tickets / New" />
       <Card title="Ticket Details">
-        <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Input
-            label="Passenger Name"
-            required
-            value={form.passengerName}
-            onChange={(e) => setForm({ ...form, passengerName: e.target.value })}
-          />
-          <Select
-            label="Customer"
-            required
-            value={form.customerId}
-            onChange={(e) => setForm({ ...form, customerId: e.target.value })}
-          >
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
-          <Input
-            label="Airline"
-            required
-            value={form.airline}
-            onChange={(e) => setForm({ ...form, airline: e.target.value })}
-          />
-          <Input
-            label="PNR"
-            required
-            value={form.pnr}
-            onChange={(e) => setForm({ ...form, pnr: e.target.value })}
-          />
-          <Input
-            label="Ticket Number"
-            value={form.ticketNumber}
-            onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })}
-          />
-          <Input
-            label="Sector (e.g. KHI-JED)"
-            required
-            value={form.sector}
-            onChange={(e) => setForm({ ...form, sector: e.target.value })}
-          />
-          <Input
-            label="Issue Date"
-            type="date"
-            value={form.issueDate}
-            onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
-          />
-          <Input
-            label="Travel Date"
-            type="date"
-            required
-            value={form.travelDate}
-            onChange={(e) => setForm({ ...form, travelDate: e.target.value })}
-          />
-          <Input
-            label="Flight Time"
-            value={form.flightTime}
-            onChange={(e) => setForm({ ...form, flightTime: e.target.value })}
-          />
-          <Select
-            label="Supplier"
-            value={form.supplierId}
-            onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
-          >
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </Select>
-          {showCost && (
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Input
-              label="Cost Price (PKR)"
+              label="Passenger Name"
+              required
+              value={form.passengerName}
+              onChange={(e) => setForm({ ...form, passengerName: e.target.value })}
+            />
+            <Select
+              label="Customer"
+              required
+              value={form.customerId}
+              onChange={(e) => setForm({ ...form, customerId: e.target.value })}
+            >
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+            <Input
+              label="Airline"
+              required
+              value={form.airline}
+              onChange={(e) => setForm({ ...form, airline: e.target.value })}
+            />
+            <Input
+              label="PNR"
+              required
+              value={form.pnr}
+              onChange={(e) => setForm({ ...form, pnr: e.target.value })}
+            />
+            <Input
+              label="Ticket Number"
+              value={form.ticketNumber}
+              onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })}
+            />
+            <Input
+              label="Sector (e.g. KHI-JED)"
+              required
+              value={form.sector}
+              onChange={(e) => setForm({ ...form, sector: e.target.value })}
+            />
+            <Input
+              label="Issue Date"
+              type="date"
+              value={form.issueDate}
+              onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
+            />
+            <Input
+              label="Travel Date"
+              type="date"
+              required
+              value={form.travelDate}
+              onChange={(e) => setForm({ ...form, travelDate: e.target.value })}
+            />
+            <Input
+              label="Flight Time"
+              value={form.flightTime}
+              onChange={(e) => setForm({ ...form, flightTime: e.target.value })}
+            />
+            <Select
+              label="Supplier"
+              value={form.supplierId}
+              onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
+            >
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label="Status"
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value as BookingStatus })}
+            >
+              {["Confirmed", "Pending", "Cancelled", "Refunded", "Completed"].map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {showCost ? (
+            <SarCostFields
+              costSAR={form.costSAR}
+              exchangeRate={form.exchangeRate}
+              salePrice={form.salePrice}
+              showProfit={showProfit}
+              onChange={(patch) => setForm({ ...form, ...patch })}
+            />
+          ) : (
+            <Input
+              label="Sale Price (PKR)"
               type="number"
               min={0}
-              value={form.costPrice}
-              onChange={(e) => setForm({ ...form, costPrice: Number(e.target.value) })}
+              required
+              value={form.salePrice}
+              onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })}
             />
           )}
-          <Input
-            label="Sale Price (PKR)"
-            type="number"
-            min={0}
-            required
-            value={form.salePrice}
-            onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })}
-          />
-          <Select
-            label="Status"
-            value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value as BookingStatus })}
-          >
-            {["Confirmed", "Pending", "Cancelled", "Refunded", "Completed"].map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </Select>
-          {showCost && (
-            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 sm:col-span-2 lg:col-span-3">
-              Estimated profit: PKR {calcProfit(Number(form.costPrice), Number(form.salePrice)).toLocaleString("en-PK")}
+
+          {!showCost && showProfit && (
+            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              Estimated profit: PKR{" "}
+              {calcProfit(costPKR, Number(form.salePrice)).toLocaleString("en-PK")}
             </div>
           )}
-          <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-3">
+
+          <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>

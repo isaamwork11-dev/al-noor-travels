@@ -84,6 +84,10 @@ export interface AirTicket {
   travelDate: string;
   flightTime: string;
   supplierId: string;
+  /** Cost in SAR (preferred). */
+  costSAR?: number;
+  /** User-entered SAR→PKR rate locked on this record. */
+  exchangeRate?: number;
   costPrice: number;
   salePrice: number;
   profit: number;
@@ -91,6 +95,7 @@ export interface AirTicket {
   currency: Currency;
   createdBy: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface VisaRecord {
@@ -109,6 +114,9 @@ export interface VisaRecord {
   status: BookingStatus | "In Process" | "Approved" | "Rejected";
   createdBy: string;
   createdAt: string;
+  updatedAt?: string;
+  costSAR?: number;
+  exchangeRate?: number;
 }
 
 export interface HotelBooking {
@@ -127,6 +135,9 @@ export interface HotelBooking {
   status: BookingStatus;
   createdBy: string;
   createdAt: string;
+  updatedAt?: string;
+  costSAR?: number;
+  exchangeRate?: number;
 }
 
 export type TransportType = "Airport Transfer" | "Ziyarat Transport" | "Local Transport";
@@ -148,6 +159,9 @@ export interface TransportBooking {
   status: BookingStatus;
   createdBy: string;
   createdAt: string;
+  updatedAt?: string;
+  costSAR?: number;
+  exchangeRate?: number;
 }
 
 export interface UmrahPackage {
@@ -167,6 +181,9 @@ export interface UmrahPackage {
   status: BookingStatus;
   createdBy: string;
   createdAt: string;
+  updatedAt?: string;
+  costSAR?: number;
+  exchangeRate?: number;
 }
 
 export interface TourPackage {
@@ -272,6 +289,68 @@ export interface ExchangeRates {
   CNY: number;   // Chinese Yuan
 }
 
+/** One passenger/ticket line under a multi-service travel booking. */
+export interface BookingTicketLine {
+  id: string;
+  passengerName: string;
+  airline: string;
+  pnr: string;
+  ticketNumber: string;
+  sector: string;
+  travelDate: string;
+  supplierId: string;
+  /** Cost entered in Saudi Riyals. */
+  costSAR: number;
+  /** SAR→PKR rate entered by user for this line (locked forever). */
+  exchangeRate: number;
+  /** costSAR × exchangeRate */
+  costPKR: number;
+  salePrice: number;
+  profit: number;
+}
+
+export type BookingServiceKind = "visa" | "hotel" | "transport" | "ticket";
+
+/** One service (visa / hotel / transport / tickets) inside a travel booking. */
+export interface BookingServiceItem {
+  id: string;
+  kind: BookingServiceKind;
+  supplierId: string;
+  /** Free-text summary shown in lists (hotel name, visa type, etc.). */
+  title: string;
+  /** Kind-specific fields kept as a flat bag for flexibility. */
+  details: Record<string, string>;
+  costSAR: number;
+  exchangeRate: number;
+  costPKR: number;
+  salePrice: number;
+  profit: number;
+  /** Only for kind === "ticket" — multiple passengers with separate costs. */
+  tickets?: BookingTicketLine[];
+}
+
+/**
+ * Unified booking that can bundle Visa + Hotel + Transport + Tickets,
+ * each with its own vendor, SAR cost, and locked exchange rate.
+ */
+export interface TravelBooking {
+  id: string;
+  bookingId: string;
+  customerId: string;
+  title: string;
+  travelDate: string;
+  returnDate: string;
+  status: BookingStatus;
+  notes: string;
+  services: BookingServiceItem[];
+  totalCostPKR: number;
+  totalSale: number;
+  totalProfit: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppState {
   users: AppUser[];
   customers: Customer[];
@@ -283,6 +362,7 @@ export interface AppState {
   umrahPackages: UmrahPackage[];
   tourPackages: TourPackage[];
   insurance: InsuranceRecord[];
+  travelBookings: TravelBooking[];
   payments: Payment[];
   cashBook: CashEntry[];
   refunds: Refund[];
