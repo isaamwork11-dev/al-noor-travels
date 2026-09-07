@@ -8,9 +8,8 @@ import { User } from "@/models";
 export const dynamic = "force-dynamic";
 
 /**
- * Seeds the demo dataset. Open while the database is empty so a fresh install
- * can bootstrap itself; afterwards a super admin is required, and `?force=1`
- * wipes and reseeds every collection.
+ * Creates the initial admin on an empty database. Only `?force=1` explicitly
+ * wipes and reseeds the demo dataset.
  */
 export async function POST(request: NextRequest) {
   try {

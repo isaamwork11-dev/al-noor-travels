@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Seeds the database through the running app's API, so it uses exactly the same
-// code path as a first-run login. Start `npm run dev` (or `npm start`) first.
+// Explicitly seeds demo data through the running app's API. Normal first login
+// creates only the initial admin account and leaves business data empty.
 //
-//   npm run seed
+//   npm run seed              # creates the initial admin on an empty database
 //   npm run seed -- --force        # wipe and reseed every collection
 //   BASE_URL=https://example.com npm run seed
 

@@ -57,9 +57,28 @@ export async function seedDB(force = false): Promise<SeedResult> {
   await connectDB();
 
   const userCount = await User.countDocuments();
-  if (userCount > 0 && !force) {
-    return { seeded: false, reason: "Database already has users", counts: {} };
-  }
+    if (userCount > 0 && !force) {
+      return { seeded: false, reason: "Database already has users", counts: {} };
+    }
+
+    if (!force) {
+      const admin = DEMO_DATA.users[0];
+      const record: DbRecord = {
+        ...admin,
+        password: await hashPassword(admin.password),
+      };
+      await User.create(record);
+      await AppSettings.updateOne(
+        { id: SETTINGS_ID },
+        { $setOnInsert: { exchangeRates: DEFAULT_RATES } },
+        { upsert: true }
+      );
+      return {
+        seeded: true,
+        reason: "Created initial admin account; business data is empty",
+        counts: { users: 1 },
+      };
+    }
 
   if (force) {
     await Promise.all([
@@ -95,7 +114,7 @@ export async function seedDB(force = false): Promise<SeedResult> {
 
   return {
     seeded: true,
-    reason: force ? "Reseeded (force)" : "Seeded empty database",
+    reason: "Reseeded demo data (force)",
     counts,
   };
 }
