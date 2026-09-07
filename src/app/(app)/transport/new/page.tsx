@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { todayISO } from "@/lib/format";
 import type { BookingStatus, TransportType } from "@/lib/types";
@@ -32,10 +33,10 @@ export default function NewTransportPage() {
     status: "Confirmed" as BookingStatus,
   });
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    addTransport({
+    await addTransport({
       ...form,
       costSAR: Number(form.costSAR),
       exchangeRate: Number(form.exchangeRate),
@@ -43,6 +44,10 @@ export default function NewTransportPage() {
       salePrice: Number(form.salePrice),
       createdBy: user.id,
     });
+    if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
+      window.location.reload();
+      return;
+    }
     router.push("/transport");
   };
 
@@ -142,6 +147,7 @@ export default function NewTransportPage() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
+            <Button type="submit" name="addAnother" variant="secondary"><Plus size={15} /> Save &amp; Add Another</Button>
             <Button type="submit">Save Transfer</Button>
           </div>
         </form>

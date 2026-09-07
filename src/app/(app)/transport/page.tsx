@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FileDown, Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR } from "@/lib/format";
+import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { generateVoucherPDF } from "@/lib/pdf";
 import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
@@ -66,6 +66,8 @@ export default function TransportPage() {
                   <th className="pb-2 font-medium">Sale</th>
                   {showProfit && <th className="pb-2 font-medium">Profit</th>}
                   <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 font-medium">Created</th>
+                  <th className="pb-2 font-medium">Updated</th>
                   <th className="pb-2 font-medium">Voucher</th>
                 </tr>
               </thead>
@@ -90,6 +92,8 @@ export default function TransportPage() {
                     <td className="py-2.5">
                       <StatusBadge status={t.status} />
                     </td>
+                    <td className="py-2.5 text-xs text-slate-500">{formatDateTime(t.createdAt)}</td>
+                    <td className="py-2.5 text-xs text-slate-500">{formatDateTime(t.updatedAt || t.createdAt)}</td>
                     <td className="py-2.5">
                       <Button variant="ghost" className="!px-2 !py-1" onClick={() => download(t)}>
                         <FileDown size={14} /> PDF

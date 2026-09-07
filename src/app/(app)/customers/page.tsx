@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { Plus, Eye } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR } from "@/lib/format";
+import { formatDateTime, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, Input, Modal, PageHeader } from "@/components/ui";
 
 export default function CustomersPage() {
@@ -58,6 +58,7 @@ export default function CustomersPage() {
                   <th className="pb-2 font-medium">Passport</th>
                   <th className="pb-2 font-medium">Outstanding</th>
                   <th className="pb-2 font-medium">Created</th>
+                  <th className="pb-2 font-medium">Updated</th>
                   <th className="pb-2 font-medium">Action</th>
                 </tr>
               </thead>
@@ -70,7 +71,8 @@ export default function CustomersPage() {
                     <td className="py-2.5 text-slate-600">{c.cnic}</td>
                     <td className="py-2.5 text-slate-600">{c.passportNumber}</td>
                     <td className="py-2.5 font-medium text-slate-800">{formatPKR(c.outstanding)}</td>
-                    <td className="py-2.5 text-slate-500">{formatDate(c.createdAt)}</td>
+                    <td className="py-2.5 text-slate-500">{formatDateTime(c.createdAt)}</td>
+                    <td className="py-2.5 text-slate-500">{formatDateTime(c.updatedAt || c.createdAt)}</td>
                     <td className="py-2.5">
                       <Link
                         href={`/customers/${c.id}`}

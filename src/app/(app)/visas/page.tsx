@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR } from "@/lib/format";
+import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
 export default function VisasPage() {
@@ -46,6 +46,8 @@ export default function VisasPage() {
                   <th className="pb-2 font-medium">Sale</th>
                   {showProfit && <th className="pb-2 font-medium">Profit</th>}
                   <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 font-medium">Created</th>
+                  <th className="pb-2 font-medium">Updated</th>
                 </tr>
               </thead>
               <tbody>
@@ -64,6 +66,8 @@ export default function VisasPage() {
                     <td className="py-2.5">
                       <StatusBadge status={v.status} />
                     </td>
+                    <td className="py-2.5 text-xs text-slate-500">{formatDateTime(v.createdAt)}</td>
+                    <td className="py-2.5 text-xs text-slate-500">{formatDateTime(v.updatedAt || v.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

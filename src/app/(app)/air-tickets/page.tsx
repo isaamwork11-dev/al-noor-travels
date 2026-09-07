@@ -69,7 +69,10 @@ export default function AirTicketsPage() {
                     <td className="py-2.5 text-slate-600">{formatDate(t.travelDate)}</td>
                     <td className="py-2.5 text-slate-600">{supplierName(t.supplierId)}</td>
                     {showCost && (
-                      <td className="py-2.5 text-slate-700">{formatPKR(t.costPrice)}</td>
+                      <td className="py-2.5 text-slate-700">
+                        {t.costSAR ? `SAR ${t.costSAR.toLocaleString("en-PK")}` : formatPKR(t.costPrice)}
+                        <div className="text-xs text-slate-400">{formatPKR(t.costPrice)}</div>
+                      </td>
                     )}
                     <td className="py-2.5 font-medium text-slate-800">{formatPKR(t.salePrice)}</td>
                     {showProfit && (

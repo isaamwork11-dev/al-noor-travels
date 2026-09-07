@@ -100,6 +100,7 @@ const customerSchema = new Schema<SchemaRecord>(
     address: { type: String, default: "" },
     outstanding: { type: Number, default: 0 },
     createdAt: { type: String, required: true },
+    updatedAt: { type: String },
   },
   baseOptions
 );
@@ -113,6 +114,7 @@ const supplierSchema = new Schema<SchemaRecord>(
     email: { type: String, default: "" },
     outstanding: { type: Number, default: 0 },
     createdAt: { type: String, required: true },
+    updatedAt: { type: String },
   },
   baseOptions
 );
@@ -234,8 +236,10 @@ const umrahPackageSchema = new Schema<SchemaRecord>(
     salePrice: { type: Number, default: 0 },
     profit: { type: Number, default: 0 },
     status: { type: String, default: "Pending" },
+    services: { type: [Schema.Types.Mixed], default: [] },
     createdBy: { type: String, default: "" },
     createdAt: { type: String, required: true },
+    updatedAt: { type: String },
   },
   baseOptions
 );
@@ -255,6 +259,7 @@ const tourPackageSchema = new Schema<SchemaRecord>(
     status: { type: String, default: "Pending" },
     createdBy: { type: String, default: "" },
     createdAt: { type: String, required: true },
+    updatedAt: { type: String },
   },
   baseOptions
 );
@@ -371,6 +376,8 @@ const cashEntrySchema = new Schema<SchemaRecord>(
     description: { type: String, default: "" },
     date: { type: String, default: "" },
     createdBy: { type: String, default: "" },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String },
   },
   baseOptions
 );

@@ -59,6 +59,7 @@ export interface Customer {
   address: string;
   outstanding: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Supplier {
@@ -69,6 +70,7 @@ export interface Supplier {
   email: string;
   outstanding: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AirTicket {
@@ -184,6 +186,7 @@ export interface UmrahPackage {
   updatedAt?: string;
   costSAR?: number;
   exchangeRate?: number;
+  services?: BookingServiceItem[];
 }
 
 export interface TourPackage {
@@ -200,6 +203,7 @@ export interface TourPackage {
   status: BookingStatus;
   createdBy: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export type Currency = "PKR" | "SAR" | "AED" | "USD";
@@ -247,6 +251,8 @@ export interface CashEntry {
   description: string;
   date: string;
   createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Refund {

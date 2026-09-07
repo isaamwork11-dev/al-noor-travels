@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { calcProfit, sarToPkr, todayISO } from "@/lib/format";
 import type { BookingStatus, Currency } from "@/lib/types";
@@ -37,10 +38,10 @@ export default function NewAirTicketPage() {
 
   const costPKR = sarToPkr(form.costSAR, form.exchangeRate);
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    addTicket({
+    await addTicket({
       passengerName: form.passengerName,
       customerId: form.customerId,
       airline: form.airline,
@@ -59,6 +60,10 @@ export default function NewAirTicketPage() {
       currency: form.currency,
       createdBy: user.id,
     });
+    if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
+      window.location.reload();
+      return;
+    }
     router.push("/air-tickets");
   };
 
@@ -181,6 +186,7 @@ export default function NewAirTicketPage() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
+            <Button type="submit" name="addAnother" variant="secondary"><Plus size={15} /> Save &amp; Add Another</Button>
             <Button type="submit">Save Ticket</Button>
           </div>
         </form>

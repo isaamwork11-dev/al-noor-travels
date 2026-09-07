@@ -124,11 +124,14 @@ export default function LedgerPage() {
     payments,
   ]);
 
-  let balance = 0;
-  const withBalance = entries.map((e) => {
-    balance += e.debit - e.credit;
-    return { ...e, balance };
-  });
+  const withBalance = entries.reduce<{ date: string; ref: string; description: string; debit: number; credit: number; balance: number }[]>(
+    (result, entry) => {
+      const previous = result[result.length - 1]?.balance || 0;
+      result.push({ ...entry, balance: previous + entry.debit - entry.credit });
+      return result;
+    },
+    []
+  );
 
   if (!canView) {
     return (
@@ -192,8 +195,8 @@ export default function LedgerPage() {
                     <td className="py-2.5 text-slate-600">{formatDate(e.date)}</td>
                     <td className="py-2.5 font-medium text-blue-700">{e.ref}</td>
                     <td className="py-2.5 text-slate-700">{e.description}</td>
-                    <td className="py-2.5">{e.debit ? formatPKR(e.debit) : "—"}</td>
-                    <td className="py-2.5">{e.credit ? formatPKR(e.credit) : "—"}</td>
+                    <td className="py-2.5 font-semibold text-rose-700">{e.debit ? formatPKR(e.debit) : "—"}</td>
+                    <td className="py-2.5 font-semibold text-emerald-700">{e.credit ? formatPKR(e.credit) : "—"}</td>
                     <td className="py-2.5 font-medium text-slate-800">{formatPKR(e.balance)}</td>
                   </tr>
                 ))}

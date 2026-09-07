@@ -19,9 +19,7 @@ import type {
 import { SarCostFields } from "@/components/SarCostFields";
 import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 
-const DEFAULT_RATE = 73.9;
-
-function emptyTicket(): BookingTicketLine {
+function emptyTicket(exchangeRate: number): BookingTicketLine {
   return normalizeTicketLine({
     passengerName: "",
     airline: "",
@@ -31,19 +29,19 @@ function emptyTicket(): BookingTicketLine {
     travelDate: todayISO(),
     supplierId: "",
     costSAR: 0,
-    exchangeRate: DEFAULT_RATE,
+    exchangeRate,
     salePrice: 0,
   });
 }
 
-function emptyService(kind: BookingServiceKind): BookingServiceItem {
+function emptyService(kind: BookingServiceKind, exchangeRate: number): BookingServiceItem {
   if (kind === "ticket") {
     return normalizeServiceItem({
       kind: "ticket",
       title: "Tickets",
       supplierId: "",
       details: {},
-      tickets: [emptyTicket()],
+      tickets: [emptyTicket(exchangeRate)],
     });
   }
   return normalizeServiceItem({
@@ -52,7 +50,7 @@ function emptyService(kind: BookingServiceKind): BookingServiceItem {
     supplierId: "",
     details: {},
     costSAR: 0,
-    exchangeRate: DEFAULT_RATE,
+    exchangeRate,
     salePrice: 0,
   });
 }
@@ -62,6 +60,7 @@ export default function NewBookingPage() {
   const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
   const suppliers = useAppStore((s) => s.suppliers);
+  const exchangeRates = useAppStore((s) => s.exchangeRates);
   const addTravelBooking = useAppStore((s) => s.addTravelBooking);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
@@ -75,7 +74,7 @@ export default function NewBookingPage() {
     notes: "",
   });
   const [services, setServices] = useState<BookingServiceItem[]>([
-    emptyService("visa"),
+    emptyService("visa", exchangeRates.SAR || 73.9),
   ]);
   const [addKind, setAddKind] = useState<BookingServiceKind>("hotel");
   const [saving, setSaving] = useState(false);
@@ -389,7 +388,7 @@ export default function NewBookingPage() {
                     className="!py-1 text-xs"
                     onClick={() =>
                       updateService(si, {
-                        tickets: [...(svc.tickets ?? []), emptyTicket()],
+                        tickets: [...(svc.tickets ?? []), emptyTicket(exchangeRates.SAR || 73.9)],
                       })
                     }
                   >
@@ -532,7 +531,7 @@ export default function NewBookingPage() {
               onClick={() =>
                 setServices((prev) => [
                   ...prev,
-                  { ...emptyService(addKind), id: nextId("svc") },
+                  { ...emptyService(addKind, exchangeRates.SAR || 73.9), id: nextId("svc") },
                 ])
               }
             >

@@ -3,7 +3,13 @@ import type { Model } from "mongoose";
 import { MissingMongoUriError } from "./db";
 import { calcProfit, nextBookingId, nextId, sarToPkr, toPKR } from "./format";
 import { normalizeTravelBooking } from "./booking-calc";
-import type { Currency, ExchangeRates, TravelBooking as TravelBookingType, UserPermissions } from "./types";
+import type {
+  BookingServiceItem,
+  Currency,
+  ExchangeRates,
+  TravelBooking as TravelBookingType,
+  UserPermissions,
+} from "./types";
 import type { Session } from "./auth-server";
 import type { AppSettingsDoc } from "@/models";
 import {
@@ -336,7 +342,31 @@ export async function applyDerivedFields(
     }
   }
 
+  const lockNestedRates = () => {
+    if (!previous || !Array.isArray(next.services)) return;
+    const oldServices = (previous.services ?? []) as BookingServiceItem[];
+    const oldById = new Map(oldServices.map((service) => [service.id, service]));
+    next.services = (next.services as BookingServiceItem[]).map((service) => {
+      const oldService = oldById.get(service.id);
+      const lockedService = oldService?.exchangeRate
+        ? { ...service, exchangeRate: oldService.exchangeRate }
+        : service;
+      if (service.kind !== "ticket") return lockedService;
+      const oldTickets = new Map((oldService?.tickets ?? []).map((ticket) => [ticket.id, ticket]));
+      return {
+        ...lockedService,
+        tickets: (service.tickets ?? []).map((ticket) => {
+          const oldTicket = oldTickets.get(ticket.id);
+          return oldTicket?.exchangeRate
+            ? { ...ticket, exchangeRate: oldTicket.exchangeRate }
+            : ticket;
+        }),
+      };
+    });
+  };
+
   if (collection === "travelBookings") {
+    lockNestedRates();
     const normalized = normalizeTravelBooking({
       customerId: String(next.customerId ?? previous?.customerId ?? ""),
       services: (next.services ?? previous?.services ?? []) as TravelBookingType["services"],
@@ -352,10 +382,26 @@ export async function applyDerivedFields(
     return next;
   }
 
+  if (collection === "umrahPackages" && Array.isArray(next.services)) {
+    lockNestedRates();
+    const normalized = normalizeTravelBooking({
+      customerId: String(next.customerId ?? previous?.customerId ?? ""),
+      services: next.services as TravelBookingType["services"],
+    });
+    next.services = normalized.services;
+    next.costPrice = normalized.totalCostPKR;
+    next.salePrice = normalized.totalSale;
+    next.profit = normalized.totalProfit;
+    next.costSAR = normalized.services.reduce((sum, service) => sum + service.costSAR, 0);
+    return next;
+  }
+
   if (COLLECTIONS[collection].service) {
     // Prefer SAR + locked rate when provided; otherwise keep legacy PKR costPrice.
     const costSAR = Number(next.costSAR ?? previous?.costSAR ?? 0);
-    const exchangeRate = Number(next.exchangeRate ?? previous?.exchangeRate ?? 0);
+    const lockedExchangeRate = Number(previous?.exchangeRate ?? 0);
+    const exchangeRate = lockedExchangeRate || Number(next.exchangeRate ?? 0);
+    if (lockedExchangeRate > 0) next.exchangeRate = lockedExchangeRate;
     if (costSAR > 0 && exchangeRate > 0) {
       next.costSAR = costSAR;
       next.exchangeRate = exchangeRate;

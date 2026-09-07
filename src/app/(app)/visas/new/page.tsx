@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { todayISO } from "@/lib/format";
 import type { VisaRecord } from "@/lib/types";
@@ -37,10 +38,10 @@ export default function NewVisaPage() {
     status: "In Process" as VisaRecord["status"],
   });
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    addVisa({
+    await addVisa({
       ...form,
       costSAR: Number(form.costSAR),
       exchangeRate: Number(form.exchangeRate),
@@ -50,6 +51,10 @@ export default function NewVisaPage() {
       expiryDate: form.expiryDate || undefined,
       createdBy: user.id,
     });
+    if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
+      window.location.reload();
+      return;
+    }
     router.push("/visas");
   };
 
@@ -145,6 +150,7 @@ export default function NewVisaPage() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
+            <Button type="submit" name="addAnother" variant="secondary"><Plus size={15} /> Save &amp; Add Another</Button>
             <Button type="submit">Save Visa</Button>
           </div>
         </form>

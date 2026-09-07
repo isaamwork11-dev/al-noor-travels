@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { todayISO } from "@/lib/format";
 import type { BookingStatus } from "@/lib/types";
@@ -30,10 +31,10 @@ export default function NewHotelPage() {
     status: "Confirmed" as BookingStatus,
   });
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    addHotel({
+    await addHotel({
       ...form,
       costSAR: Number(form.costSAR),
       exchangeRate: Number(form.exchangeRate),
@@ -41,6 +42,10 @@ export default function NewHotelPage() {
       salePrice: Number(form.salePrice),
       createdBy: user.id,
     });
+    if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
+      window.location.reload();
+      return;
+    }
     router.push("/hotels");
   };
 
@@ -137,6 +142,7 @@ export default function NewHotelPage() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
+            <Button type="submit" name="addAnother" variant="secondary"><Plus size={15} /> Save &amp; Add Another</Button>
             <Button type="submit">Save Booking</Button>
           </div>
         </form>

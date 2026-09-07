@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR } from "@/lib/format";
+import { formatDateTime, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select } from "@/components/ui";
 
 export default function SuppliersPage() {
@@ -53,7 +53,8 @@ export default function SuppliersPage() {
                   <th className="pb-2 font-medium">Mobile</th>
                   <th className="pb-2 font-medium">Email</th>
                   <th className="pb-2 font-medium">Outstanding</th>
-                  <th className="pb-2 font-medium">Since</th>
+                  <th className="pb-2 font-medium">Created</th>
+                  <th className="pb-2 font-medium">Updated</th>
                 </tr>
               </thead>
               <tbody>
@@ -64,7 +65,8 @@ export default function SuppliersPage() {
                     <td className="py-2.5 text-slate-600">{s.mobile}</td>
                     <td className="py-2.5 text-slate-600">{s.email}</td>
                     <td className="py-2.5 font-medium text-amber-700">{formatPKR(s.outstanding)}</td>
-                    <td className="py-2.5 text-slate-500">{formatDate(s.createdAt)}</td>
+                    <td className="py-2.5 text-slate-500">{formatDateTime(s.createdAt)}</td>
+                    <td className="py-2.5 text-slate-500">{formatDateTime(s.updatedAt || s.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

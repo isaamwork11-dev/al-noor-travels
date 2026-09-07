@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR, todayISO } from "@/lib/format";
+import { formatDate, formatDateTime, formatPKR, todayISO } from "@/lib/format";
 import type { Currency } from "@/lib/types";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select } from "@/components/ui";
 
@@ -71,11 +71,11 @@ export default function CashBookPage() {
       <PageHeader title="Cash Book" breadcrumb="Home / Accounts / Cash Book" />
 
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
           <p className="text-xs text-slate-500">Income</p>
           <p className="mt-1 text-lg font-bold text-emerald-700">{formatPKR(income)}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm">
           <p className="text-xs text-slate-500">Expense</p>
           <p className="mt-1 text-lg font-bold text-rose-700">{formatPKR(expense)}</p>
         </div>
@@ -108,11 +108,18 @@ export default function CashBookPage() {
                   <th className="pb-2 font-medium">Description</th>
                   <th className="pb-2 font-medium">Amount</th>
                   <th className="pb-2 font-medium">PKR</th>
+                  <th className="pb-2 font-medium">Created</th>
+                  <th className="pb-2 font-medium">Updated</th>
                 </tr>
               </thead>
               <tbody>
                 {cashBook.map((e) => (
-                  <tr key={e.id} className="border-b border-slate-50 last:border-0">
+                  <tr
+                    key={e.id}
+                    className={`border-b border-slate-50 last:border-0 ${
+                      e.type === "Income" ? "bg-emerald-50/40" : "bg-rose-50/40"
+                    }`}
+                  >
                     <td className="py-2.5 text-slate-600">{formatDate(e.date)}</td>
                     <td className="py-2.5">
                       <span
@@ -127,10 +134,20 @@ export default function CashBookPage() {
                     </td>
                     <td className="py-2.5 text-slate-600">{e.category}</td>
                     <td className="py-2.5 text-slate-700">{e.description}</td>
-                    <td className="py-2.5 text-slate-600">
+                    <td
+                      className={
+                        e.type === "Income"
+                          ? "py-2.5 font-semibold text-emerald-700"
+                          : "py-2.5 font-semibold text-rose-700"
+                      }
+                    >
                       {e.currency} {e.amount.toLocaleString("en-PK")}
                     </td>
-                    <td className="py-2.5 font-medium">{formatPKR(e.amountPKR)}</td>
+                    <td className={e.type === "Income" ? "py-2.5 font-semibold text-emerald-700" : "py-2.5 font-semibold text-rose-700"}>
+                      {formatPKR(e.amountPKR)}
+                    </td>
+                    <td className="py-2.5 text-xs text-slate-500">{formatDateTime(e.createdAt || e.date)}</td>
+                    <td className="py-2.5 text-xs text-slate-500">{formatDateTime(e.updatedAt || e.createdAt || e.date)}</td>
                   </tr>
                 ))}
               </tbody>
