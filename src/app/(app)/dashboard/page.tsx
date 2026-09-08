@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   Plane,
@@ -14,7 +13,7 @@ import {
   ArrowRightLeft,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatPKR } from "@/lib/format";
+import { formatPKR, todayISO } from "@/lib/format";
 import {
   Card,
   PageHeader,
@@ -22,6 +21,37 @@ import {
   StatusBadge,
 } from "@/components/ui";
 import { SalesLineChart, ServicesPieChart } from "@/components/Charts";
+
+type DashboardRow = {
+  bookingId: string;
+  customer: string;
+  service: string;
+  date: string;
+  status: string;
+  icon: "plane" | "visa" | "hotel" | "bus" | "umrah";
+};
+
+function BookingTable({ rows }: { rows: DashboardRow[] }) {
+  const Icon = ({ type }: { type: DashboardRow["icon"] }) => {
+    const map = {
+      plane: <Plane size={14} className="text-blue-600" />,
+      visa: <FileText size={14} className="text-emerald-600" />,
+      hotel: <Hotel size={14} className="text-violet-600" />,
+      bus: <Bus size={14} className="text-orange-600" />,
+      umrah: <BadgeCheck size={14} className="text-cyan-600" />,
+    };
+    return <span className="rounded bg-slate-50 p-1.5">{map[type]}</span>;
+  };
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[520px] text-left text-sm">
+        <thead><tr className="border-b border-slate-100 text-xs text-slate-500"><th className="pb-2 font-medium">Booking ID</th><th className="pb-2 font-medium">Customer</th><th className="pb-2 font-medium">Service</th><th className="pb-2 font-medium">Date</th><th className="pb-2 font-medium">Status</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.bookingId + row.service} className="border-b border-slate-50 last:border-0"><td className="py-2.5"><div className="flex items-center gap-2"><Icon type={row.icon} /><span className="font-medium text-slate-700">{row.bookingId}</span></div></td><td className="py-2.5 text-slate-600">{row.customer}</td><td className="py-2.5 text-slate-600">{row.service}</td><td className="py-2.5 text-slate-600">{row.date}</td><td className="py-2.5"><StatusBadge status={row.status} /></td></tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -63,16 +93,7 @@ export default function DashboardPage() {
 
   const getCustomerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
-  type Row = {
-    bookingId: string;
-    customer: string;
-    service: string;
-    date: string;
-    status: string;
-    icon: "plane" | "visa" | "hotel" | "bus" | "umrah";
-  };
-
-  const upcoming: Row[] = [
+  const allBookings: DashboardRow[] = [
     ...airTickets.map((t) => ({
       bookingId: t.bookingId,
       customer: t.passengerName,
@@ -113,7 +134,24 @@ export default function DashboardPage() {
       status: u.status,
       icon: "umrah" as const,
     })),
-  ]
+    ...travelBookings.flatMap((b) => b.services.map((service) => ({
+      bookingId: b.bookingId,
+      customer: getCustomerName(b.customerId),
+      service: `${service.kind.toUpperCase()} — ${service.title}`,
+      date: service.kind === "hotel"
+        ? service.details.checkIn || b.travelDate
+        : service.kind === "transport"
+          ? service.details.date || b.travelDate
+          : service.kind === "ticket"
+            ? service.tickets?.map((ticket) => ticket.travelDate).filter(Boolean).sort()[0] || b.travelDate
+            : b.travelDate,
+      status: b.status,
+      icon: service.kind === "hotel" ? "hotel" as const : service.kind === "transport" ? "bus" as const : service.kind === "ticket" ? "plane" as const : "visa" as const,
+    }))),
+  ];
+
+  const upcoming = allBookings
+    .filter((booking) => booking.date >= todayISO() && !["Completed", "Cancelled", "Refunded"].includes(booking.status))
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 6);
 
@@ -136,51 +174,6 @@ export default function DashboardPage() {
     { name: "Visas", value: 10 },
     { name: "Transport", value: 5 },
   ];
-
-  const Icon = ({ type }: { type: Row["icon"] }) => {
-    const map = {
-      plane: <Plane size={14} className="text-blue-600" />,
-      visa: <FileText size={14} className="text-emerald-600" />,
-      hotel: <Hotel size={14} className="text-violet-600" />,
-      bus: <Bus size={14} className="text-orange-600" />,
-      umrah: <BadgeCheck size={14} className="text-cyan-600" />,
-    };
-    return <span className="rounded bg-slate-50 p-1.5">{map[type]}</span>;
-  };
-
-  const BookingTable = ({ rows }: { rows: Row[] }) => (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[520px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-slate-100 text-xs text-slate-500">
-            <th className="pb-2 font-medium">Booking ID</th>
-            <th className="pb-2 font-medium">Customer</th>
-            <th className="pb-2 font-medium">Service</th>
-            <th className="pb-2 font-medium">Date</th>
-            <th className="pb-2 font-medium">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.bookingId + r.service} className="border-b border-slate-50 last:border-0">
-              <td className="py-2.5">
-                <div className="flex items-center gap-2">
-                  <Icon type={r.icon} />
-                  <span className="font-medium text-slate-700">{r.bookingId}</span>
-                </div>
-              </td>
-              <td className="py-2.5 text-slate-600">{r.customer}</td>
-              <td className="py-2.5 text-slate-600">{r.service}</td>
-              <td className="py-2.5 text-slate-600">{r.date}</td>
-              <td className="py-2.5">
-                <StatusBadge status={r.status} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
 
   return (
     <div>

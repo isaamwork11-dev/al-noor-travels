@@ -105,6 +105,15 @@ export async function POST(request: NextRequest, ctx: Context) {
       return jsonError(`You do not have permission to add ${config.module} records`, 403);
     }
 
+    if (collection === "payments") {
+      if (typeof body.bookingId !== "string" || !body.bookingId) {
+        return jsonError("A booking is required for every payment", 400);
+      }
+      if (typeof body.partyId !== "string" || !body.partyId) {
+        return jsonError("A client or vendor account is required for every payment", 400);
+      }
+    }
+
     const payload = stripProtectedFields(body);
     const record = await applyDerivedFields(collection, payload);
 

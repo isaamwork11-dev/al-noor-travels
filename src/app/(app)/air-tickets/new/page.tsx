@@ -4,9 +4,8 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { calcProfit, sarToPkr, todayISO } from "@/lib/format";
+import { calcProfit, formatPKR, todayISO } from "@/lib/format";
 import type { BookingStatus, Currency } from "@/lib/types";
-import { SarCostFields } from "@/components/SarCostFields";
 import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 
 export default function NewAirTicketPage() {
@@ -20,6 +19,8 @@ export default function NewAirTicketPage() {
 
   const [form, setForm] = useState({
     passengerName: "",
+    passengerNames: [""],
+    pax: 1,
     customerId: customers[0]?.id || "",
     airline: "",
     pnr: "",
@@ -29,20 +30,30 @@ export default function NewAirTicketPage() {
     travelDate: todayISO(),
     flightTime: "",
     supplierId: suppliers[0]?.id || "",
-    costSAR: 0,
-    exchangeRate: 73.9,
-    salePrice: 0,
+    costPrice: 0,
+    perTicketPrice: 0,
     status: "Confirmed" as BookingStatus,
     currency: "PKR" as Currency,
   });
 
-  const costPKR = sarToPkr(form.costSAR, form.exchangeRate);
+  const totalAmount = form.perTicketPrice * form.pax;
+
+  const updatePax = (pax: number) => {
+    const safePax = Math.max(1, pax || 1);
+    setForm((current) => ({
+      ...current,
+      pax: safePax,
+      passengerNames: Array.from({ length: safePax }, (_, index) => current.passengerNames[index] || ""),
+    }));
+  };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
     await addTicket({
       passengerName: form.passengerName,
+      passengerNames: form.passengerNames,
+      pax: form.pax,
       customerId: form.customerId,
       airline: form.airline,
       pnr: form.pnr,
@@ -52,10 +63,10 @@ export default function NewAirTicketPage() {
       travelDate: form.travelDate,
       flightTime: form.flightTime,
       supplierId: form.supplierId,
-      costSAR: form.costSAR,
-      exchangeRate: form.exchangeRate,
-      costPrice: costPKR,
-      salePrice: Number(form.salePrice),
+      costPrice: Number(form.costPrice),
+      perTicketPrice: Number(form.perTicketPrice),
+      totalAmount,
+      salePrice: totalAmount,
       status: form.status,
       currency: form.currency,
       createdBy: user.id,
@@ -73,12 +84,20 @@ export default function NewAirTicketPage() {
       <Card title="Ticket Details">
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Input
-              label="Passenger Name"
-              required
-              value={form.passengerName}
-              onChange={(e) => setForm({ ...form, passengerName: e.target.value })}
-            />
+            <Input label="PAX" type="number" min={1} required value={form.pax} onChange={(e) => updatePax(Number(e.target.value))} />
+            {form.passengerNames.map((name, index) => (
+              <Input
+                key={index}
+                label={`Passenger ${index + 1} Name`}
+                required
+                value={name}
+                onChange={(e) => {
+                  const passengerNames = [...form.passengerNames];
+                  passengerNames[index] = e.target.value;
+                  setForm({ ...form, passengerName: passengerNames[0], passengerNames });
+                }}
+              />
+            ))}
             <Select
               label="Customer"
               required
@@ -156,29 +175,19 @@ export default function NewAirTicketPage() {
             </Select>
           </div>
 
-          {showCost ? (
-            <SarCostFields
-              costSAR={form.costSAR}
-              exchangeRate={form.exchangeRate}
-              salePrice={form.salePrice}
-              showProfit={showProfit}
-              onChange={(patch) => setForm({ ...form, ...patch })}
-            />
-          ) : (
-            <Input
-              label="Sale Price (PKR)"
-              type="number"
-              min={0}
-              required
-              value={form.salePrice}
-              onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })}
-            />
-          )}
+          <div className="grid gap-3 sm:grid-cols-3">
+            {showCost && <Input label="Cost Price (PKR)" type="number" min={0} value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: Number(e.target.value) })} />}
+            <Input label="Per Ticket Price (PKR)" type="number" min={0} required value={form.perTicketPrice} onChange={(e) => setForm({ ...form, perTicketPrice: Number(e.target.value) })} />
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm">
+              <p className="text-xs text-slate-500">Total Amount</p>
+              <p className="mt-1 text-lg font-bold text-blue-800">{formatPKR(totalAmount)}</p>
+            </div>
+          </div>
 
           {!showCost && showProfit && (
             <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
               Estimated profit: PKR{" "}
-              {calcProfit(costPKR, Number(form.salePrice)).toLocaleString("en-PK")}
+              {calcProfit(Number(form.costPrice), totalAmount).toLocaleString("en-PK")}
             </div>
           )}
 

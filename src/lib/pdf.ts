@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-type VoucherKind = "hotel" | "transport" | "umrah" | "visa" | "payment";
+type VoucherKind = "hotel" | "transport" | "umrah" | "visa" | "payment" | "air_ticket" | "booking";
 
 interface VoucherPayload {
   kind: VoucherKind;
@@ -20,6 +20,8 @@ export function generateVoucherPDF(payload: VoucherPayload) {
     umrah: "Umrah Package Voucher",
     visa: "Visa Receipt",
     payment: "Payment Receipt",
+    air_ticket: "Air Ticket Invoice",
+    booking: "Travel Booking Invoice",
   };
 
   doc.setFillColor(15, 28, 63);

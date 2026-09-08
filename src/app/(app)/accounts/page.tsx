@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { FormEvent, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatPKR } from "@/lib/format";
-import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
+import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
+import { todayISO } from "@/lib/format";
 
 export default function AccountsPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -11,6 +13,15 @@ export default function AccountsPage() {
   const suppliers = useAppStore((s) => s.suppliers);
   const payments = useAppStore((s) => s.payments);
   const markPaymentPaid = useAppStore((s) => s.markPaymentPaid);
+  const addPayment = useAppStore((s) => s.addPayment);
+  const airTickets = useAppStore((s) => s.airTickets);
+  const visas = useAppStore((s) => s.visas);
+  const hotels = useAppStore((s) => s.hotels);
+  const transports = useAppStore((s) => s.transports);
+  const umrahPackages = useAppStore((s) => s.umrahPackages);
+  const travelBookings = useAppStore((s) => s.travelBookings);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [form, setForm] = useState({ type: "Customer" as "Customer" | "Supplier", partyId: "", bookingId: "", amount: 0, status: "Paid" as "Pending" | "Paid" | "Partial", dueDate: todayISO(), note: "" });
 
   const canView =
     user?.role === "super_admin" || !!user?.permissions.viewAccounts;
@@ -29,6 +40,36 @@ export default function AccountsPage() {
   const receivables = customers.filter((c) => c.outstanding > 0);
   const payables = suppliers.filter((s) => s.outstanding > 0);
   const pending = payments.filter((p) => p.status !== "Paid");
+  const parties = form.type === "Customer" ? customers : suppliers;
+  const bookingOptions = Array.from(new Set([
+    ...airTickets.map((x) => x.bookingId),
+    ...visas.map((x) => x.bookingId),
+    ...hotels.map((x) => x.bookingId),
+    ...transports.map((x) => x.bookingId),
+    ...umrahPackages.map((x) => x.bookingId),
+    ...travelBookings.map((x) => x.bookingId),
+  ])).filter(Boolean);
+
+  const submitPayment = async (event: FormEvent) => {
+    event.preventDefault();
+    const party = parties.find((item) => item.id === form.partyId);
+    if (!party || !form.bookingId || form.amount <= 0) return;
+    await addPayment({
+      type: form.type,
+      partyId: party.id,
+      partyName: party.name,
+      bookingId: form.bookingId,
+      amount: Number(form.amount),
+      currency: "PKR",
+      amountPKR: Number(form.amount),
+      dueDate: form.dueDate,
+      status: form.status,
+      note: form.note,
+      ...(form.status === "Paid" ? { paidDate: todayISO() } : {}),
+    });
+    setPaymentOpen(false);
+    setForm({ type: "Customer", partyId: "", bookingId: "", amount: 0, status: "Paid", dueDate: todayISO(), note: "" });
+  };
 
   return (
     <div>
@@ -107,7 +148,7 @@ export default function AccountsPage() {
         </Card>
       </div>
 
-      <Card title="Pending Payments">
+      <Card title="Payments" action={<Button onClick={() => setPaymentOpen(true)}>Payment Entry</Button>}>
         {pending.length === 0 ? (
           <EmptyState message="No pending payments." />
         ) : (
@@ -149,6 +190,30 @@ export default function AccountsPage() {
           </div>
         )}
       </Card>
+
+      <Modal open={paymentOpen} onClose={() => setPaymentOpen(false)} title="Payment Entry">
+        <form onSubmit={submitPayment} className="grid gap-3 sm:grid-cols-2">
+          <Select label="Account Type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as "Customer" | "Supplier", partyId: "" })}>
+            <option value="Customer">Client / Customer (Received)</option>
+            <option value="Supplier">Vendor / Supplier (Paid)</option>
+          </Select>
+          <Select label={form.type === "Customer" ? "Client" : "Vendor"} required value={form.partyId} onChange={(e) => setForm({ ...form, partyId: e.target.value })}>
+            <option value="">Select account</option>
+            {parties.map((party) => <option key={party.id} value={party.id}>{party.name}</option>)}
+          </Select>
+          <Select label="Booking" required value={form.bookingId} onChange={(e) => setForm({ ...form, bookingId: e.target.value })}>
+            <option value="">Select booking</option>
+            {bookingOptions.map((bookingId) => <option key={bookingId} value={bookingId}>{bookingId}</option>)}
+          </Select>
+          <Input label="Amount (PKR)" type="number" min={1} required value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
+          <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "Pending" | "Paid" | "Partial" })}>
+            <option value="Paid">Paid</option><option value="Partial">Partial</option><option value="Pending">Pending</option>
+          </Select>
+          <Input label="Due Date" type="date" required value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+          <Input label="Note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+          <div className="flex justify-end sm:col-span-2"><Button type="submit">Save Payment</Button></div>
+        </form>
+      </Modal>
     </div>
   );
 }

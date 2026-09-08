@@ -175,8 +175,7 @@ export default function BookingDetailPage({
                       <th className="pb-2 font-medium">Passenger</th>
                       <th className="pb-2 font-medium">Vendor</th>
                       <th className="pb-2 font-medium">Flight</th>
-                      {showCost && <th className="pb-2 font-medium">SAR</th>}
-                      {showCost && <th className="pb-2 font-medium">Rate</th>}
+                      <th className="pb-2 font-medium">PAX</th>
                       {showCost && <th className="pb-2 font-medium">Cost PKR</th>}
                       <th className="pb-2 font-medium">Sale</th>
                       {showProfit && <th className="pb-2 font-medium">Profit</th>}
@@ -190,8 +189,7 @@ export default function BookingDetailPage({
                         <td className="py-2 text-slate-600">
                           {tk.airline} · {tk.sector} · {tk.pnr}
                         </td>
-                        {showCost && <td className="py-2">{tk.costSAR}</td>}
-                        {showCost && <td className="py-2">{tk.exchangeRate}</td>}
+                        <td className="py-2">1</td>
                         {showCost && <td className="py-2">{formatPKR(tk.costPKR)}</td>}
                         <td className="py-2">{formatPKR(tk.salePrice)}</td>
                         {showProfit && (

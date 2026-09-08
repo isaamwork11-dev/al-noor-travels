@@ -322,6 +322,9 @@ const NUMERIC_FIELDS = [
   "totalCostPKR",
   "totalSale",
   "totalProfit",
+  "pax",
+  "perTicketPrice",
+  "totalAmount",
 ];
 
 /**
@@ -419,6 +422,21 @@ export async function applyDerivedFields(
       const rates = await getExchangeRates();
       next.amountPKR = toPKR(amount, currency, rates);
     }
+  }
+
+  if (collection === "airTickets") {
+    const pax = Math.max(1, Number(next.pax ?? previous?.pax ?? 1));
+    const perTicketPrice = Number(next.perTicketPrice ?? next.salePrice ?? previous?.perTicketPrice ?? 0);
+    next.pax = pax;
+    next.perTicketPrice = perTicketPrice;
+    next.totalAmount = perTicketPrice * pax;
+    next.salePrice = next.totalAmount;
+    const passengerNames = Array.isArray(next.passengerNames)
+      ? next.passengerNames.filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+      : [String(next.passengerName ?? "")].filter(Boolean);
+    next.passengerNames = passengerNames;
+    next.passengerName = String(passengerNames[0] ?? next.passengerName ?? "");
+    next.profit = calcProfit(Number(next.costPrice ?? previous?.costPrice ?? 0), Number(next.totalAmount));
   }
 
   return next;

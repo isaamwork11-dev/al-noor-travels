@@ -7,7 +7,7 @@ import { formatDate, formatPKR } from "@/lib/format";
 import { generateVoucherPDF } from "@/lib/pdf";
 import { Button, Card, EmptyState, PageHeader, Select } from "@/components/ui";
 
-type VoucherKind = "hotel" | "transport" | "umrah" | "visa" | "payment";
+type VoucherKind = "hotel" | "transport" | "umrah" | "visa" | "payment" | "air_ticket" | "booking";
 
 export default function VouchersPage() {
   const hotels = useAppStore((s) => s.hotels);
@@ -15,6 +15,8 @@ export default function VouchersPage() {
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const visas = useAppStore((s) => s.visas);
   const payments = useAppStore((s) => s.payments);
+  const airTickets = useAppStore((s) => s.airTickets);
+  const travelBookings = useAppStore((s) => s.travelBookings);
   const customers = useAppStore((s) => s.customers);
 
   const [kind, setKind] = useState<VoucherKind>("hotel");
@@ -83,6 +85,41 @@ export default function VouchersPage() {
         amount: formatPKR(v.salePrice),
       });
     } else {
+      if (kind === "air_ticket") {
+        const ticket = airTickets.find((x) => x.id === id);
+        if (!ticket) return;
+        generateVoucherPDF({
+          kind,
+          bookingId: ticket.bookingId,
+          customerName: customerName(ticket.customerId),
+          lines: [
+            { label: "Passenger Names", value: ticket.passengerNames?.join(", ") || ticket.passengerName },
+            { label: "PAX", value: String(ticket.pax || 1) },
+            { label: "Per Ticket Price", value: formatPKR(ticket.perTicketPrice || ticket.salePrice / (ticket.pax || 1)) },
+            { label: "Sector", value: ticket.sector },
+          ],
+          amount: formatPKR(ticket.totalAmount || ticket.salePrice),
+        });
+        return;
+      }
+      if (kind === "booking") {
+        const booking = travelBookings.find((x) => x.id === id);
+        if (!booking) return;
+        const ticketLines = booking.services.flatMap((service) => service.tickets ?? []);
+        generateVoucherPDF({
+          kind,
+          bookingId: booking.bookingId,
+          customerName: customerName(booking.customerId),
+          lines: [
+            { label: "Passenger Names", value: ticketLines.map((ticket) => ticket.passengerName).join(", ") || "—" },
+            { label: "PAX", value: String(ticketLines.length || 0) },
+            { label: "Per Ticket Price", value: ticketLines.length ? formatPKR(ticketLines[0].salePrice) : "—" },
+            { label: "Services", value: booking.services.map((service) => service.title).join(", ") },
+          ],
+          amount: formatPKR(booking.totalSale),
+        });
+        return;
+      }
       const p = payments.find((x) => x.id === id);
       if (!p) return;
       generateVoucherPDF({
@@ -110,7 +147,11 @@ export default function VouchersPage() {
           ? umrahPackages.map((u) => ({ id: u.id, label: `${u.bookingId} — ${u.packageName}` }))
           : kind === "visa"
             ? visas.map((v) => ({ id: v.id, label: `${v.bookingId} — ${v.visaType}` }))
-            : payments.map((p) => ({ id: p.id, label: `${p.partyName} — ${formatPKR(p.amountPKR)}` }));
+            : kind === "air_ticket"
+              ? airTickets.map((t) => ({ id: t.id, label: `${t.bookingId} — ${t.passengerName}` }))
+              : kind === "booking"
+                ? travelBookings.map((b) => ({ id: b.id, label: `${b.bookingId} — ${b.title || "Travel Booking"}` }))
+                : payments.map((p) => ({ id: p.id, label: `${p.partyName} — ${formatPKR(p.amountPKR)}` }));
 
   return (
     <div>
@@ -127,6 +168,8 @@ export default function VouchersPage() {
             <option value="umrah">Umrah Package Voucher</option>
             <option value="visa">Visa Receipt</option>
             <option value="payment">Payment Receipt</option>
+            <option value="air_ticket">Air Ticket Invoice</option>
+            <option value="booking">Travel Booking Invoice</option>
           </Select>
         </div>
 

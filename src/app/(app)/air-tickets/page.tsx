@@ -41,7 +41,7 @@ export default function AirTicketsPage() {
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-500">
                   <th className="pb-2 font-medium">Booking</th>
-                  <th className="pb-2 font-medium">Passenger</th>
+                  <th className="pb-2 font-medium">Passengers / PAX</th>
                   <th className="pb-2 font-medium">Airline</th>
                   <th className="pb-2 font-medium">PNR</th>
                   <th className="pb-2 font-medium">Sector</th>
@@ -60,7 +60,7 @@ export default function AirTicketsPage() {
                   <tr key={t.id} className="border-b border-slate-50 last:border-0">
                     <td className="py-2.5 font-medium text-blue-700">{t.bookingId}</td>
                     <td className="py-2.5 text-slate-800">
-                      <div>{t.passengerName}</div>
+                      <div>{t.passengerNames?.length ? t.passengerNames.join(", ") : t.passengerName} ({t.pax || 1})</div>
                       <div className="text-xs text-slate-400">{customerName(t.customerId)}</div>
                     </td>
                     <td className="py-2.5 text-slate-600">{t.airline}</td>
@@ -70,8 +70,7 @@ export default function AirTicketsPage() {
                     <td className="py-2.5 text-slate-600">{supplierName(t.supplierId)}</td>
                     {showCost && (
                       <td className="py-2.5 text-slate-700">
-                        {t.costSAR ? `SAR ${t.costSAR.toLocaleString("en-PK")}` : formatPKR(t.costPrice)}
-                        <div className="text-xs text-slate-400">{formatPKR(t.costPrice)}</div>
+                        {formatPKR(t.costPrice)}
                       </td>
                     )}
                     <td className="py-2.5 font-medium text-slate-800">{formatPKR(t.salePrice)}</td>

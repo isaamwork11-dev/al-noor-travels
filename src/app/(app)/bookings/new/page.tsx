@@ -477,15 +477,11 @@ export default function NewBookingPage() {
                         }
                       />
                     </div>
-                    {showCost && (
-                      <SarCostFields
-                        costSAR={tk.costSAR}
-                        exchangeRate={tk.exchangeRate}
-                        salePrice={tk.salePrice}
-                        showProfit={showProfit}
-                        onChange={(patch) => updateTicket(si, ti, patch)}
-                      />
-                    )}
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {showCost && <Input label="Cost Price (PKR)" type="number" min={0} value={tk.costPKR} onChange={(e) => updateTicket(si, ti, { costPKR: Number(e.target.value), costSAR: 0, exchangeRate: 0 })} />}
+                      <Input label="Per Ticket Price (PKR)" type="number" min={0} required value={tk.salePrice} onChange={(e) => updateTicket(si, ti, { salePrice: Number(e.target.value) })} />
+                      {showProfit && <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm"><p className="text-xs text-slate-500">Profit</p><p className="mt-1 font-bold text-emerald-700">{formatPKR(tk.profit)}</p></div>}
+                    </div>
                   </div>
                 ))}
 

@@ -11,7 +11,7 @@ export function normalizeTicketLine(
 ): BookingTicketLine {
   const costSAR = Number(ticket.costSAR) || 0;
   const exchangeRate = Number(ticket.exchangeRate) || 0;
-  const costPKR = sarToPkr(costSAR, exchangeRate);
+  const costPKR = Number(ticket.costPKR) > 0 ? Number(ticket.costPKR) : sarToPkr(costSAR, exchangeRate);
   const salePrice = Number(ticket.salePrice) || 0;
   return {
     id: ticket.id || nextId("tk"),
@@ -28,6 +28,13 @@ export function normalizeTicketLine(
     salePrice,
     profit: calcProfit(costPKR, salePrice),
   };
+}
+
+/** Air ticket sales are entered directly in PKR; no exchange rate is involved. */
+export function normalizeAirTicketPrice(perTicketPrice: number, pax: number) {
+  const safePax = Math.max(1, Number(pax) || 1);
+  const safePrice = Math.max(0, Number(perTicketPrice) || 0);
+  return { pax: safePax, perTicketPrice: safePrice, totalAmount: safePrice * safePax };
 }
 
 /** Recalculate a service line; ticket kind rolls up from passengers. */

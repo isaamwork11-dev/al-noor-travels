@@ -77,6 +77,8 @@ export interface AirTicket {
   id: string;
   bookingId: string;
   passengerName: string;
+  passengerNames?: string[];
+  pax: number;
   customerId: string;
   airline: string;
   pnr: string;
@@ -91,6 +93,8 @@ export interface AirTicket {
   /** User-entered SAR→PKR rate locked on this record. */
   exchangeRate?: number;
   costPrice: number;
+  perTicketPrice: number;
+  totalAmount: number;
   salePrice: number;
   profit: number;
   status: BookingStatus;
@@ -231,6 +235,7 @@ export interface Payment {
   type: "Customer" | "Supplier";
   partyId: string;
   partyName: string;
+  bookingId: string;
   amount: number;
   currency: Currency;
   amountPKR: number;

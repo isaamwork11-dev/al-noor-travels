@@ -168,6 +168,9 @@ export const DEMO_DATA: AppState = {
       id: "t1",
       bookingId: "BK-000125",
       passengerName: "Muhammad Ali",
+      pax: 1,
+      perTicketPrice: 95000,
+      totalAmount: 95000,
       customerId: "c1",
       airline: "Emirates",
       pnr: "EM7X9K",
@@ -189,6 +192,9 @@ export const DEMO_DATA: AppState = {
       id: "t2",
       bookingId: "BK-000128",
       passengerName: "Hassan Raza",
+      pax: 1,
+      perTicketPrice: 135000,
+      totalAmount: 135000,
       customerId: "c3",
       airline: "PIA",
       pnr: "PK4M2N",
@@ -210,6 +216,9 @@ export const DEMO_DATA: AppState = {
       id: "t3",
       bookingId: "BK-000130",
       passengerName: "Ayesha Malik",
+      pax: 1,
+      perTicketPrice: 108000,
+      totalAmount: 108000,
       customerId: "c4",
       airline: "Flynas",
       pnr: "XY1ABC",
@@ -519,6 +528,7 @@ export const DEMO_DATA: AppState = {
   payments: [
     {
       id: "p1",
+      bookingId: "BK-000125",
       type: "Customer",
       partyId: "c1",
       partyName: "Muhammad Ali",
@@ -531,6 +541,7 @@ export const DEMO_DATA: AppState = {
     },
     {
       id: "p2",
+      bookingId: "BK-000126",
       type: "Supplier",
       partyId: "s1",
       partyName: "Al Madina Hotel",
@@ -543,6 +554,7 @@ export const DEMO_DATA: AppState = {
     },
     {
       id: "p3",
+      bookingId: "BK-000128",
       type: "Customer",
       partyId: "c3",
       partyName: "Hassan Raza",
@@ -555,6 +567,7 @@ export const DEMO_DATA: AppState = {
     },
     {
       id: "p4",
+      bookingId: "BK-000130",
       type: "Supplier",
       partyId: "s2",
       partyName: "Emirates Airlines Agent",
