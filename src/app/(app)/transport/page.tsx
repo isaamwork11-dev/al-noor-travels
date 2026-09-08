@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FileDown, Plus } from "lucide-react";
+import { FileDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { generateVoucherPDF } from "@/lib/pdf";
@@ -14,6 +14,9 @@ export default function TransportPage() {
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
   const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
+  const deleteTransport = useAppStore((s) => s.deleteTransport);
+  const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
+  const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   const download = (t: (typeof transports)[0]) => {
@@ -68,6 +71,7 @@ export default function TransportPage() {
                   <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Created</th>
                   <th className="pb-2 font-medium">Updated</th>
+                  <th className="pb-2 font-medium">Actions</th>
                   <th className="pb-2 font-medium">Voucher</th>
                 </tr>
               </thead>
@@ -94,6 +98,10 @@ export default function TransportPage() {
                     </td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(t.createdAt)}</td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(t.updatedAt || t.createdAt)}</td>
+                    <td className="py-2.5 whitespace-nowrap">
+                      {canEdit && <Link href={`/transport/new?edit=${t.id}`} className="mr-2 text-xs text-slate-600 hover:underline"><Pencil size={14} className="inline" /> Edit</Link>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this transfer permanently?") && deleteTransport(t.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                    </td>
                     <td className="py-2.5">
                       <Button variant="ghost" className="!px-2 !py-1" onClick={() => download(t)}>
                         <FileDown size={14} /> PDF

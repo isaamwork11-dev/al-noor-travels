@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
@@ -14,6 +14,9 @@ export default function AirTicketsPage() {
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
   const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
+  const deleteTicket = useAppStore((s) => s.deleteTicket);
+  const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
+  const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
 
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
   const supplierName = (id: string) => suppliers.find((s) => s.id === id)?.name || "—";
@@ -53,6 +56,7 @@ export default function AirTicketsPage() {
                   <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Created</th>
                   <th className="pb-2 font-medium">Updated</th>
+                  <th className="pb-2 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -82,6 +86,10 @@ export default function AirTicketsPage() {
                     </td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(t.createdAt)}</td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(t.updatedAt || t.createdAt)}</td>
+                    <td className="py-2.5 whitespace-nowrap">
+                      {canEdit && <Link href={`/air-tickets/new?edit=${t.id}`} className="mr-2 text-xs text-slate-600 hover:underline"><Pencil size={14} className="inline" /> Edit</Link>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this air ticket permanently?") && deleteTicket(t.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

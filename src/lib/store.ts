@@ -11,7 +11,6 @@ import {
 } from "./api-client";
 import { todayISO } from "./format";
 import type {
-  ActivityLog,
   AirTicket,
   AppState,
   AppUser,
@@ -69,23 +68,32 @@ interface DataActions {
   deleteCustomer: (id: string) => Promise<void>;
   addSupplier: (data: Omit<Supplier, "id" | "createdAt" | "outstanding">) => Promise<void>;
   updateSupplier: (id: string, patch: Partial<Supplier>) => Promise<void>;
+  deleteSupplier: (id: string) => Promise<void>;
   addTicket: (data: Omit<AirTicket, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
   updateTicket: (id: string, patch: Partial<AirTicket>) => Promise<void>;
   deleteTicket: (id: string) => Promise<void>;
   addVisa: (data: Omit<VisaRecord, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
   updateVisa: (id: string, patch: Partial<VisaRecord>) => Promise<void>;
+  deleteVisa: (id: string) => Promise<void>;
   addHotel: (data: Omit<HotelBooking, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
   updateHotel: (id: string, patch: Partial<HotelBooking>) => Promise<void>;
+  deleteHotel: (id: string) => Promise<void>;
   addTransport: (
     data: Omit<TransportBooking, "id" | "bookingId" | "profit" | "createdAt">
   ) => Promise<void>;
   updateTransport: (id: string, patch: Partial<TransportBooking>) => Promise<void>;
+  deleteTransport: (id: string) => Promise<void>;
   addUmrah: (data: Omit<UmrahPackage, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
   updateUmrah: (id: string, patch: Partial<UmrahPackage>) => Promise<void>;
+  deleteUmrah: (id: string) => Promise<void>;
   addTour: (data: Omit<TourPackage, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
+  updateTour: (id: string, patch: Partial<TourPackage>) => Promise<void>;
+  deleteTour: (id: string) => Promise<void>;
   addInsurance: (
     data: Omit<InsuranceRecord, "id" | "bookingId" | "profit" | "createdAt">
   ) => Promise<void>;
+  updateInsurance: (id: string, patch: Partial<InsuranceRecord>) => Promise<void>;
+  deleteInsurance: (id: string) => Promise<void>;
   addTravelBooking: (
     data: Omit<
       TravelBooking,
@@ -101,11 +109,18 @@ interface DataActions {
   updateTravelBooking: (id: string, patch: Partial<TravelBooking>) => Promise<void>;
   deleteTravelBooking: (id: string) => Promise<void>;
   addPayment: (data: Omit<Payment, "id" | "createdAt">) => Promise<void>;
+  updatePayment: (id: string, patch: Partial<Payment>) => Promise<void>;
+  deletePayment: (id: string) => Promise<void>;
   markPaymentPaid: (id: string) => Promise<void>;
   addCashEntry: (data: Omit<CashEntry, "id">) => Promise<void>;
+  updateCashEntry: (id: string, patch: Partial<CashEntry>) => Promise<void>;
+  deleteCashEntry: (id: string) => Promise<void>;
   addRefund: (data: Omit<Refund, "id" | "createdAt">) => Promise<void>;
+  updateRefund: (id: string, patch: Partial<Refund>) => Promise<void>;
+  deleteRefund: (id: string) => Promise<void>;
   addUser: (data: Omit<AppUser, "id" | "createdAt">) => Promise<void>;
   updateUser: (id: string, patch: Partial<AppUser>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
   updateUserPermissions: (id: string, permissions: UserPermissions) => Promise<void>;
 }
 
@@ -219,6 +234,11 @@ export const useAppStore = create<Store>((set, get) => ({
     set((s) => ({ suppliers: s.suppliers.map((x) => (x.id === id ? updated : x)) }));
   },
 
+  deleteSupplier: async (id) => {
+    await data.remove("suppliers", id);
+    set((s) => ({ suppliers: s.suppliers.filter((supplier) => supplier.id !== id) }));
+  },
+
   addTicket: async (payload) => {
     const created = await data.create<AirTicket>("airTickets", payload);
     set((s) => ({ airTickets: [created, ...s.airTickets] }));
@@ -244,6 +264,11 @@ export const useAppStore = create<Store>((set, get) => ({
     set((s) => ({ visas: s.visas.map((v) => (v.id === id ? updated : v)) }));
   },
 
+  deleteVisa: async (id) => {
+    await data.remove("visas", id);
+    set((s) => ({ visas: s.visas.filter((visa) => visa.id !== id) }));
+  },
+
   addHotel: async (payload) => {
     const created = await data.create<HotelBooking>("hotels", payload);
     set((s) => ({ hotels: [created, ...s.hotels] }));
@@ -252,6 +277,11 @@ export const useAppStore = create<Store>((set, get) => ({
   updateHotel: async (id, patch) => {
     const updated = await data.update<HotelBooking>("hotels", id, patch);
     set((s) => ({ hotels: s.hotels.map((h) => (h.id === id ? updated : h)) }));
+  },
+
+  deleteHotel: async (id) => {
+    await data.remove("hotels", id);
+    set((s) => ({ hotels: s.hotels.filter((hotel) => hotel.id !== id) }));
   },
 
   addTransport: async (payload) => {
@@ -264,6 +294,11 @@ export const useAppStore = create<Store>((set, get) => ({
     set((s) => ({ transports: s.transports.map((t) => (t.id === id ? updated : t)) }));
   },
 
+  deleteTransport: async (id) => {
+    await data.remove("transports", id);
+    set((s) => ({ transports: s.transports.filter((transport) => transport.id !== id) }));
+  },
+
   addUmrah: async (payload) => {
     const created = await data.create<UmrahPackage>("umrahPackages", payload);
     set((s) => ({ umrahPackages: [created, ...s.umrahPackages] }));
@@ -274,14 +309,39 @@ export const useAppStore = create<Store>((set, get) => ({
     set((s) => ({ umrahPackages: s.umrahPackages.map((u) => (u.id === id ? updated : u)) }));
   },
 
+  deleteUmrah: async (id) => {
+    await data.remove("umrahPackages", id);
+    set((s) => ({ umrahPackages: s.umrahPackages.filter((umrah) => umrah.id !== id) }));
+  },
+
   addTour: async (payload) => {
     const created = await data.create<TourPackage>("tourPackages", payload);
     set((s) => ({ tourPackages: [created, ...s.tourPackages] }));
   },
 
+  updateTour: async (id, patch) => {
+    const updated = await data.update<TourPackage>("tourPackages", id, patch);
+    set((s) => ({ tourPackages: s.tourPackages.map((tour) => (tour.id === id ? updated : tour)) }));
+  },
+
+  deleteTour: async (id) => {
+    await data.remove("tourPackages", id);
+    set((s) => ({ tourPackages: s.tourPackages.filter((tour) => tour.id !== id) }));
+  },
+
   addInsurance: async (payload) => {
     const created = await data.create<InsuranceRecord>("insurance", payload);
     set((s) => ({ insurance: [created, ...s.insurance] }));
+  },
+
+  updateInsurance: async (id, patch) => {
+    const updated = await data.update<InsuranceRecord>("insurance", id, patch);
+    set((s) => ({ insurance: s.insurance.map((record) => (record.id === id ? updated : record)) }));
+  },
+
+  deleteInsurance: async (id) => {
+    await data.remove("insurance", id);
+    set((s) => ({ insurance: s.insurance.filter((record) => record.id !== id) }));
   },
 
   addTravelBooking: async (payload) => {
@@ -306,6 +366,16 @@ export const useAppStore = create<Store>((set, get) => ({
     set((s) => ({ payments: [created, ...s.payments] }));
   },
 
+  updatePayment: async (id, patch) => {
+    const updated = await data.update<Payment>("payments", id, patch);
+    set((s) => ({ payments: s.payments.map((payment) => (payment.id === id ? updated : payment)) }));
+  },
+
+  deletePayment: async (id) => {
+    await data.remove("payments", id);
+    set((s) => ({ payments: s.payments.filter((payment) => payment.id !== id) }));
+  },
+
   markPaymentPaid: async (id) => {
     const updated = await data.update<Payment>("payments", id, {
       status: "Paid",
@@ -319,9 +389,29 @@ export const useAppStore = create<Store>((set, get) => ({
     set((s) => ({ cashBook: [created, ...s.cashBook] }));
   },
 
+  updateCashEntry: async (id, patch) => {
+    const updated = await data.update<CashEntry>("cashBook", id, patch);
+    set((s) => ({ cashBook: s.cashBook.map((entry) => (entry.id === id ? updated : entry)) }));
+  },
+
+  deleteCashEntry: async (id) => {
+    await data.remove("cashBook", id);
+    set((s) => ({ cashBook: s.cashBook.filter((entry) => entry.id !== id) }));
+  },
+
   addRefund: async (payload) => {
     const created = await data.create<Refund>("refunds", payload);
     set((s) => ({ refunds: [created, ...s.refunds] }));
+  },
+
+  updateRefund: async (id, patch) => {
+    const updated = await data.update<Refund>("refunds", id, patch);
+    set((s) => ({ refunds: s.refunds.map((refund) => (refund.id === id ? updated : refund)) }));
+  },
+
+  deleteRefund: async (id) => {
+    await data.remove("refunds", id);
+    set((s) => ({ refunds: s.refunds.filter((refund) => refund.id !== id) }));
   },
 
   addUser: async (payload) => {
@@ -337,6 +427,11 @@ export const useAppStore = create<Store>((set, get) => ({
       users: s.users.map((u) => (u.id === id ? ({ ...u, ...updated } as AppUser) : u)),
       currentUser: s.currentUser?.id === id ? { ...s.currentUser, ...updated } : s.currentUser,
     }));
+  },
+
+  deleteUser: async (id) => {
+    await data.remove("users", id);
+    set((s) => ({ users: s.users.filter((user) => user.id !== id) }));
   },
 
   updateUserPermissions: async (id, permissions) => {

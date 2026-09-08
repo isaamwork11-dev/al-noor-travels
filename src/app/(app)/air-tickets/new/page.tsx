@@ -1,25 +1,30 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { calcProfit, formatPKR, todayISO } from "@/lib/format";
-import type { BookingStatus, Currency } from "@/lib/types";
+import type { BookingStatus, Currency, PassengerDetail } from "@/lib/types";
 import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 
 export default function NewAirTicketPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
   const suppliers = useAppStore((s) => s.suppliers);
   const addTicket = useAppStore((s) => s.addTicket);
+  const updateTicket = useAppStore((s) => s.updateTicket);
+  const existingTicket = useAppStore((s) => s.airTickets.find((ticket) => ticket.id === searchParams.get("edit")));
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
 
   const [form, setForm] = useState({
     passengerName: "",
     passengerNames: [""],
+    passengers: [{ fullName: "" } as PassengerDetail],
     pax: 1,
     customerId: customers[0]?.id || "",
     airline: "",
@@ -36,6 +41,34 @@ export default function NewAirTicketPage() {
     currency: "PKR" as Currency,
   });
 
+  useEffect(() => {
+    if (!existingTicket) return;
+    const passengers = existingTicket.passengers?.length
+      ? existingTicket.passengers
+      : (existingTicket.passengerNames?.length ? existingTicket.passengerNames : [existingTicket.passengerName]).map((fullName) => ({ fullName }));
+    // Hydrate the edit form after the client store finishes loading the record.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setForm({
+      passengerName: existingTicket.passengerName,
+      passengerNames: passengers.map((passenger) => passenger.fullName),
+      passengers,
+      pax: existingTicket.pax || passengers.length || 1,
+      customerId: existingTicket.customerId,
+      airline: existingTicket.airline,
+      pnr: existingTicket.pnr,
+      ticketNumber: existingTicket.ticketNumber,
+      sector: existingTicket.sector,
+      issueDate: existingTicket.issueDate,
+      travelDate: existingTicket.travelDate,
+      flightTime: existingTicket.flightTime,
+      supplierId: existingTicket.supplierId,
+      costPrice: existingTicket.costPrice,
+      perTicketPrice: existingTicket.perTicketPrice || existingTicket.salePrice / (existingTicket.pax || 1),
+      status: existingTicket.status,
+      currency: "PKR",
+    });
+  }, [existingTicket]);
+
   const totalAmount = form.perTicketPrice * form.pax;
 
   const updatePax = (pax: number) => {
@@ -44,15 +77,17 @@ export default function NewAirTicketPage() {
       ...current,
       pax: safePax,
       passengerNames: Array.from({ length: safePax }, (_, index) => current.passengerNames[index] || ""),
+      passengers: Array.from({ length: safePax }, (_, index) => current.passengers[index] || { fullName: current.passengerNames[index] || "" }),
     }));
   };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    await addTicket({
+    const payload = {
       passengerName: form.passengerName,
       passengerNames: form.passengerNames,
+      passengers: form.passengers,
       pax: form.pax,
       customerId: form.customerId,
       airline: form.airline,
@@ -70,7 +105,9 @@ export default function NewAirTicketPage() {
       status: form.status,
       currency: form.currency,
       createdBy: user.id,
-    });
+    };
+    if (existingTicket) await updateTicket(existingTicket.id, payload);
+    else await addTicket(payload);
     if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
       window.location.reload();
       return;
@@ -80,23 +117,23 @@ export default function NewAirTicketPage() {
 
   return (
     <div>
-      <PageHeader title="Add Air Ticket" breadcrumb="Home / Air Tickets / New" />
+      <PageHeader title={existingTicket ? "Edit Air Ticket" : "Add Air Ticket"} breadcrumb="Home / Air Tickets / New" />
       <Card title="Ticket Details">
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Input label="PAX" type="number" min={1} required value={form.pax} onChange={(e) => updatePax(Number(e.target.value))} />
             {form.passengerNames.map((name, index) => (
-              <Input
-                key={index}
-                label={`Passenger ${index + 1} Name`}
-                required
-                value={name}
-                onChange={(e) => {
-                  const passengerNames = [...form.passengerNames];
-                  passengerNames[index] = e.target.value;
-                  setForm({ ...form, passengerName: passengerNames[0], passengerNames });
-                }}
-              />
+              <div key={index} className="contents">
+                <Input label={`Passenger ${index + 1} Name`} required value={form.passengers[index]?.fullName || name} onChange={(e) => {
+                  const passengers = [...form.passengers];
+                  passengers[index] = { ...passengers[index], fullName: e.target.value };
+                  setForm({ ...form, passengerName: index === 0 ? e.target.value : form.passengerName, passengerNames: passengers.map((passenger) => passenger.fullName), passengers });
+                }} />
+                <Input label="Passport (Optional)" value={form.passengers[index]?.passportNumber || ""} onChange={(e) => { const passengers = [...form.passengers]; passengers[index] = { ...passengers[index], passportNumber: e.target.value }; setForm({ ...form, passengers }); }} />
+                <Input label="CNIC (Optional)" value={form.passengers[index]?.cnic || ""} onChange={(e) => { const passengers = [...form.passengers]; passengers[index] = { ...passengers[index], cnic: e.target.value }; setForm({ ...form, passengers }); }} />
+                <Input label="Date of Birth (Optional)" type="date" value={form.passengers[index]?.dateOfBirth || ""} onChange={(e) => { const passengers = [...form.passengers]; passengers[index] = { ...passengers[index], dateOfBirth: e.target.value }; setForm({ ...form, passengers }); }} />
+                <Select label="Gender (Optional)" value={form.passengers[index]?.gender || ""} onChange={(e) => { const passengers = [...form.passengers]; passengers[index] = { ...passengers[index], gender: e.target.value }; setForm({ ...form, passengers }); }}><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></Select>
+              </div>
             ))}
             <Select
               label="Customer"

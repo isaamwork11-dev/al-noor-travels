@@ -97,6 +97,8 @@ export default function VouchersPage() {
             { label: "PAX", value: String(ticket.pax || 1) },
             { label: "Per Ticket Price", value: formatPKR(ticket.perTicketPrice || ticket.salePrice / (ticket.pax || 1)) },
             { label: "Sector", value: ticket.sector },
+            { label: "Paid Amount", value: formatPKR(payments.filter((payment) => payment.bookingId === ticket.bookingId && payment.type === "Customer" && payment.status === "Paid").reduce((sum, payment) => sum + payment.amountPKR, 0)) },
+            { label: "Remaining Balance", value: formatPKR(Math.max(0, (ticket.totalAmount || ticket.salePrice) - payments.filter((payment) => payment.bookingId === ticket.bookingId && payment.type === "Customer" && payment.status === "Paid").reduce((sum, payment) => sum + payment.amountPKR, 0))) },
           ],
           amount: formatPKR(ticket.totalAmount || ticket.salePrice),
         });
@@ -115,6 +117,8 @@ export default function VouchersPage() {
             { label: "PAX", value: String(ticketLines.length || 0) },
             { label: "Per Ticket Price", value: ticketLines.length ? formatPKR(ticketLines[0].salePrice) : "—" },
             { label: "Services", value: booking.services.map((service) => service.title).join(", ") },
+            { label: "Paid Amount", value: formatPKR(payments.filter((payment) => payment.bookingId === booking.bookingId && payment.type === "Customer" && payment.status === "Paid").reduce((sum, payment) => sum + payment.amountPKR, 0)) },
+            { label: "Remaining Balance", value: formatPKR(Math.max(0, booking.totalSale - payments.filter((payment) => payment.bookingId === booking.bookingId && payment.type === "Customer" && payment.status === "Paid").reduce((sum, payment) => sum + payment.amountPKR, 0))) },
           ],
           amount: formatPKR(booking.totalSale),
         });

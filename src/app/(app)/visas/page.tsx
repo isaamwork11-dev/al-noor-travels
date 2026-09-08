@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
@@ -13,6 +13,9 @@ export default function VisasPage() {
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
   const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
+  const deleteVisa = useAppStore((s) => s.deleteVisa);
+  const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
+  const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   return (
@@ -48,6 +51,7 @@ export default function VisasPage() {
                   <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Created</th>
                   <th className="pb-2 font-medium">Updated</th>
+                  <th className="pb-2 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -68,6 +72,10 @@ export default function VisasPage() {
                     </td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(v.createdAt)}</td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(v.updatedAt || v.createdAt)}</td>
+                    <td className="py-2.5 whitespace-nowrap">
+                      {canEdit && <Link href={`/visas/new?edit=${v.id}`} className="mr-2 text-xs text-slate-600 hover:underline"><Pencil size={14} className="inline" /> Edit</Link>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this visa permanently?") && deleteVisa(v.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

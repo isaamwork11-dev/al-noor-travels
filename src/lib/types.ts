@@ -78,6 +78,7 @@ export interface AirTicket {
   bookingId: string;
   passengerName: string;
   passengerNames?: string[];
+  passengers?: PassengerDetail[];
   pax: number;
   customerId: string;
   airline: string;
@@ -102,6 +103,14 @@ export interface AirTicket {
   createdBy: string;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface PassengerDetail {
+  fullName: string;
+  passportNumber?: string;
+  cnic?: string;
+  dateOfBirth?: string;
+  gender?: string;
 }
 
 export interface VisaRecord {
@@ -304,6 +313,7 @@ export interface ExchangeRates {
 export interface BookingTicketLine {
   id: string;
   passengerName: string;
+  passenger?: PassengerDetail;
   airline: string;
   pnr: string;
   ticketNumber: string;

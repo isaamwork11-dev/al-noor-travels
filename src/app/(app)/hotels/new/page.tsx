@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { todayISO } from "@/lib/format";
@@ -11,10 +11,13 @@ import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 
 export default function NewHotelPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
   const suppliers = useAppStore((s) => s.suppliers);
   const addHotel = useAppStore((s) => s.addHotel);
+  const updateHotel = useAppStore((s) => s.updateHotel);
+  const existing = useAppStore((s) => s.hotels.find((hotel) => hotel.id === searchParams.get("edit")));
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
 
   const [form, setForm] = useState({
@@ -31,17 +34,23 @@ export default function NewHotelPage() {
     status: "Confirmed" as BookingStatus,
   });
 
+  // Edit mode hydrates from the client store after the record becomes available.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, hotelName: existing.hotelName, city: existing.city, checkIn: existing.checkIn, checkOut: existing.checkOut, roomType: existing.roomType, supplierId: existing.supplierId, costSAR: existing.costSAR || 0, exchangeRate: existing.exchangeRate || 73.9, salePrice: existing.salePrice, status: existing.status }); } }, [existing]);
+
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    await addHotel({
+    const payload = {
       ...form,
       costSAR: Number(form.costSAR),
       exchangeRate: Number(form.exchangeRate),
       costPrice: 0,
       salePrice: Number(form.salePrice),
       createdBy: user.id,
-    });
+    };
+    if (existing) await updateHotel(existing.id, payload);
+    else await addHotel(payload);
     if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
       window.location.reload();
       return;
@@ -51,7 +60,7 @@ export default function NewHotelPage() {
 
   return (
     <div>
-      <PageHeader title="Add Hotel Booking" breadcrumb="Home / Hotels / New" />
+      <PageHeader title={existing ? "Edit Hotel Booking" : "Add Hotel Booking"} breadcrumb="Home / Hotels / New" />
       <Card title="Booking Details">
         <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Select

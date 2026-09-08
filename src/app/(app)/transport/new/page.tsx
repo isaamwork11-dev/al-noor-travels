@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { todayISO } from "@/lib/format";
@@ -13,9 +13,12 @@ const types: TransportType[] = ["Airport Transfer", "Ziyarat Transport", "Local 
 
 export default function NewTransportPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
   const addTransport = useAppStore((s) => s.addTransport);
+  const updateTransport = useAppStore((s) => s.updateTransport);
+  const existing = useAppStore((s) => s.transports.find((transport) => transport.id === searchParams.get("edit")));
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
 
   const [form, setForm] = useState({
@@ -33,17 +36,23 @@ export default function NewTransportPage() {
     status: "Confirmed" as BookingStatus,
   });
 
+  // Edit mode hydrates from the client store after the record becomes available.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, type: existing.type, pickup: existing.pickup, dropoff: existing.dropoff, date: existing.date, time: existing.time, vehicle: existing.vehicle, driver: existing.driver, costSAR: existing.costSAR || 0, exchangeRate: existing.exchangeRate || 73.9, salePrice: existing.salePrice, status: existing.status }); } }, [existing]);
+
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    await addTransport({
+    const payload = {
       ...form,
       costSAR: Number(form.costSAR),
       exchangeRate: Number(form.exchangeRate),
       costPrice: 0,
       salePrice: Number(form.salePrice),
       createdBy: user.id,
-    });
+    };
+    if (existing) await updateTransport(existing.id, payload);
+    else await addTransport(payload);
     if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
       window.location.reload();
       return;
@@ -53,7 +62,7 @@ export default function NewTransportPage() {
 
   return (
     <div>
-      <PageHeader title="Add Transfer" breadcrumb="Home / Transport / New" />
+      <PageHeader title={existing ? "Edit Transfer" : "Add Transfer"} breadcrumb="Home / Transport / New" />
       <Card title="Transfer Details">
         <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Select

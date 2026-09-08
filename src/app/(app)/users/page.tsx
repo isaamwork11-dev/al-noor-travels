@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Plus, Settings2 } from "lucide-react";
+import { Plus, Settings2, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate } from "@/lib/format";
 import type { UserPermissions, UserRole } from "@/lib/types";
@@ -75,6 +75,7 @@ export default function UsersPage() {
   const addUser = useAppStore((s) => s.addUser);
   const updateUser = useAppStore((s) => s.updateUser);
   const updateUserPermissions = useAppStore((s) => s.updateUserPermissions);
+  const deleteUser = useAppStore((s) => s.deleteUser);
 
   const isSuperAdmin = currentUser?.role === "super_admin";
   const canManage = isSuperAdmin || !!currentUser?.permissions.manageUsers;
@@ -111,6 +112,8 @@ export default function UsersPage() {
   const [editPerms, setEditPerms] = useState<UserPermissions>({ ...EMPTY_PERMS });
 
   useEffect(() => {
+    // Hydrate the permissions dialog when a user is selected.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (permUser) setEditPerms({ ...permUser.permissions });
   }, [permUser]);
 
@@ -199,6 +202,9 @@ export default function UsersPage() {
                               onClick={() => updateUser(u.id, { active: !u.active })}
                             >
                               {u.active ? "Deactivate" : "Activate"}
+                            </Button>
+                            <Button variant="danger" className="!px-2 !py-1 text-xs" onClick={() => confirm("Delete this user permanently?") && deleteUser(u.id)}>
+                              <Trash2 size={13} /> Delete
                             </Button>
                           </>
                         )}

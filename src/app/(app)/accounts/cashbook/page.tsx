@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR, todayISO } from "@/lib/format";
 import type { Currency } from "@/lib/types";
@@ -12,9 +12,11 @@ export default function CashBookPage() {
   const cashBook = useAppStore((s) => s.cashBook);
   const exchangeRates = useAppStore((s) => s.exchangeRates);
   const addCashEntry = useAppStore((s) => s.addCashEntry);
+  const deleteCashEntry = useAppStore((s) => s.deleteCashEntry);
 
   const canView = user?.role === "super_admin" || !!user?.permissions.viewAccounts;
   const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
+  const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -110,6 +112,7 @@ export default function CashBookPage() {
                   <th className="pb-2 font-medium">PKR</th>
                   <th className="pb-2 font-medium">Created</th>
                   <th className="pb-2 font-medium">Updated</th>
+                  <th className="pb-2 font-medium">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,6 +151,9 @@ export default function CashBookPage() {
                     </td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(e.createdAt || e.date)}</td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(e.updatedAt || e.createdAt || e.date)}</td>
+                    <td className="py-2.5">
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this cash entry permanently?") && deleteCashEntry(e.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

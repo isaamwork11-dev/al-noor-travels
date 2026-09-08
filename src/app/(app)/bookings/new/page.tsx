@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import {
@@ -57,11 +57,14 @@ function emptyService(kind: BookingServiceKind, exchangeRate: number): BookingSe
 
 export default function NewBookingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
   const suppliers = useAppStore((s) => s.suppliers);
   const exchangeRates = useAppStore((s) => s.exchangeRates);
   const addTravelBooking = useAppStore((s) => s.addTravelBooking);
+  const updateTravelBooking = useAppStore((s) => s.updateTravelBooking);
+  const existing = useAppStore((s) => s.travelBookings.find((booking) => booking.id === searchParams.get("edit")));
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
 
@@ -79,6 +82,10 @@ export default function NewBookingPage() {
   const [addKind, setAddKind] = useState<BookingServiceKind>("hotel");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Edit mode hydrates the booking after the client store has loaded it.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (existing) { setHeader({ customerId: existing.customerId, title: existing.title, travelDate: existing.travelDate, returnDate: existing.returnDate, status: existing.status, notes: existing.notes }); setServices(existing.services); } }, [existing]);
 
   const totals = useMemo(() => computeBookingTotals(services), [services]);
 
@@ -119,11 +126,13 @@ export default function NewBookingPage() {
     setSaving(true);
     setError("");
     try {
-      await addTravelBooking({
+      const payload = {
         ...header,
         services,
         createdBy: user.id,
-      });
+      };
+      if (existing) await updateTravelBooking(existing.id, payload);
+      else await addTravelBooking(payload);
       router.push("/bookings");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save booking");
@@ -133,7 +142,7 @@ export default function NewBookingPage() {
 
   return (
     <div>
-      <PageHeader title="New Travel Booking" breadcrumb="Home / Bookings / New" />
+      <PageHeader title={existing ? "Edit Travel Booking" : "New Travel Booking"} breadcrumb="Home / Bookings / New" />
 
       <form onSubmit={onSubmit} className="space-y-4">
         <Card title="Booking Details">

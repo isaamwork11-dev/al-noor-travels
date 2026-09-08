@@ -125,6 +125,7 @@ const airTicketSchema = new Schema<SchemaRecord>(
     bookingId: { type: String, required: true, index: true },
     passengerName: { type: String, required: true },
     passengerNames: { type: [String], default: [] },
+    passengers: { type: [Schema.Types.Mixed], default: [] },
     pax: { type: Number, default: 1 },
     customerId: { type: String, index: true },
     airline: { type: String, default: "" },
@@ -294,6 +295,7 @@ const bookingTicketLineSchema = new Schema<SchemaRecord>(
   {
     id: { type: String, required: true },
     passengerName: { type: String, default: "" },
+    passenger: { type: Schema.Types.Mixed, default: undefined },
     airline: { type: String, default: "" },
     pnr: { type: String, default: "" },
     ticketNumber: { type: String, default: "" },

@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { todayISO } from "@/lib/format";
@@ -19,9 +19,12 @@ const visaTypes: VisaRecord["visaType"][] = [
 
 export default function NewVisaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
   const addVisa = useAppStore((s) => s.addVisa);
+  const updateVisa = useAppStore((s) => s.updateVisa);
+  const existing = useAppStore((s) => s.visas.find((visa) => visa.id === searchParams.get("edit")));
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
 
   const [form, setForm] = useState({
@@ -38,10 +41,14 @@ export default function NewVisaPage() {
     status: "In Process" as VisaRecord["status"],
   });
 
+  // Edit mode hydrates from the client store after the record becomes available.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, passportNo: existing.passportNo, visaType: existing.visaType, country: existing.country || "", submissionDate: existing.submissionDate, approvalDate: existing.approvalDate || "", expiryDate: existing.expiryDate || "", costSAR: existing.costSAR || 0, exchangeRate: existing.exchangeRate || 73.9, salePrice: existing.salePrice, status: existing.status }); } }, [existing]);
+
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    await addVisa({
+    const payload = {
       ...form,
       costSAR: Number(form.costSAR),
       exchangeRate: Number(form.exchangeRate),
@@ -50,7 +57,9 @@ export default function NewVisaPage() {
       approvalDate: form.approvalDate || undefined,
       expiryDate: form.expiryDate || undefined,
       createdBy: user.id,
-    });
+    };
+    if (existing) await updateVisa(existing.id, payload);
+    else await addVisa(payload);
     if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
       window.location.reload();
       return;
@@ -60,7 +69,7 @@ export default function NewVisaPage() {
 
   return (
     <div>
-      <PageHeader title="Add Visa" breadcrumb="Home / Visas / New" />
+      <PageHeader title={existing ? "Edit Visa" : "Add Visa"} breadcrumb="Home / Visas / New" />
       <Card title="Visa Application">
         <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Select

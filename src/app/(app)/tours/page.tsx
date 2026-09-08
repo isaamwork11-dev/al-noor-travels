@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { calcProfit, formatDate, formatPKR, todayISO } from "@/lib/format";
 import type { BookingStatus } from "@/lib/types";
@@ -12,13 +12,18 @@ export default function ToursPage() {
   const tourPackages = useAppStore((s) => s.tourPackages);
   const customers = useAppStore((s) => s.customers);
   const addTour = useAppStore((s) => s.addTour);
+  const updateTour = useAppStore((s) => s.updateTour);
+  const deleteTour = useAppStore((s) => s.deleteTour);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
   const canCreate =
     user?.role === "super_admin" || !!user?.permissions.createRecords;
+  const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
+  const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     customerId: customers[0]?.id || "",
     packageName: "",
@@ -33,13 +38,16 @@ export default function ToursPage() {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    addTour({
+    const payload = {
       ...form,
       costPrice: Number(form.costPrice),
       salePrice: Number(form.salePrice),
       createdBy: user.id,
-    });
+    };
+    if (editingId) updateTour(editingId, payload);
+    else addTour(payload);
     setOpen(false);
+    setEditingId(null);
     setForm({
       customerId: customers[0]?.id || "",
       packageName: "",
@@ -50,6 +58,12 @@ export default function ToursPage() {
       salePrice: 0,
       status: "Confirmed",
     });
+  };
+
+  const edit = (tour: (typeof tourPackages)[number]) => {
+    setEditingId(tour.id);
+    setForm({ customerId: tour.customerId, packageName: tour.packageName, destination: tour.destination, travelDate: tour.travelDate, returnDate: tour.returnDate, costPrice: tour.costPrice, salePrice: tour.salePrice, status: tour.status });
+    setOpen(true);
   };
 
   return (
@@ -81,6 +95,7 @@ export default function ToursPage() {
                   <th className="pb-2 font-medium">Sale</th>
                   {showProfit && <th className="pb-2 font-medium">Profit</th>}
                   <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -99,6 +114,10 @@ export default function ToursPage() {
                     <td className="py-2.5">
                       <StatusBadge status={t.status} />
                     </td>
+                    <td className="py-2.5 whitespace-nowrap">
+                      {canEdit && <button type="button" className="mr-2 text-xs text-slate-600 hover:underline" onClick={() => edit(t)}><Pencil size={14} className="inline" /> Edit</button>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this tour permanently?") && deleteTour(t.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -107,7 +126,7 @@ export default function ToursPage() {
         )}
       </Card>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Add Tour Package" wide>
+      <Modal open={open} onClose={() => { setOpen(false); setEditingId(null); }} title={editingId ? "Edit Tour Package" : "Add Tour Package"} wide>
         <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
           <Select
             label="Customer"

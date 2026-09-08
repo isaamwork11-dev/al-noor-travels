@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { computeBookingTotals, normalizeServiceItem, normalizeTicketLine } from "@/lib/booking-calc";
@@ -22,11 +22,14 @@ function emptyService(kind: BookingServiceKind, exchangeRate: number): BookingSe
 
 export default function NewUmrahPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
   const suppliers = useAppStore((s) => s.suppliers);
   const exchangeRates = useAppStore((s) => s.exchangeRates);
   const addUmrah = useAppStore((s) => s.addUmrah);
+  const updateUmrah = useAppStore((s) => s.updateUmrah);
+  const existing = useAppStore((s) => s.umrahPackages.find((packageRecord) => packageRecord.id === searchParams.get("edit")));
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
 
@@ -47,6 +50,9 @@ export default function NewUmrahPage() {
     emptyService("visa", exchangeRates.SAR || 73.9),
   ]);
   const [addKind, setAddKind] = useState<BookingServiceKind>("hotel");
+  // Edit mode hydrates the existing package and its nested services.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, packageName: existing.packageName, includesVisa: existing.includesVisa, includesTicket: existing.includesTicket, includesHotel: existing.includesHotel, includesTransport: existing.includesTransport, travelDate: existing.travelDate, returnDate: existing.returnDate, costPrice: existing.costPrice, salePrice: existing.salePrice, status: existing.status }); setServices(existing.services?.length ? existing.services : [emptyService("visa", exchangeRates.SAR || 73.9)]); } }, [existing, exchangeRates.SAR]);
   const totals = useMemo(() => computeBookingTotals(services), [services]);
 
   const updateService = (index: number, patch: Partial<BookingServiceItem>) => setServices((prev) => {
@@ -69,7 +75,7 @@ export default function NewUmrahPage() {
     if (!user) return;
     const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const costSAR = services.reduce((sum, service) => sum + service.costSAR, 0);
-    await addUmrah({
+    const payload = {
       ...form,
       includesVisa: services.some((service) => service.kind === "visa"),
       includesTicket: services.some((service) => service.kind === "ticket"),
@@ -81,7 +87,9 @@ export default function NewUmrahPage() {
       exchangeRate: exchangeRates.SAR || 73.9,
       services,
       createdBy: user.id,
-    });
+    };
+    if (existing) await updateUmrah(existing.id, payload);
+    else await addUmrah(payload);
     if (submitter?.name === "addAnother") {
       setForm((prev) => ({ ...prev, packageName: "", costPrice: 0, salePrice: 0 }));
       setServices([emptyService("visa", exchangeRates.SAR || 73.9)]);
@@ -92,7 +100,7 @@ export default function NewUmrahPage() {
 
   return (
     <div>
-      <PageHeader title="New Umrah Package" breadcrumb="Home / Umrah / New" />
+      <PageHeader title={existing ? "Edit Umrah Package" : "New Umrah Package"} breadcrumb="Home / Umrah / New" />
       <Card title="Package Details">
         <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Select

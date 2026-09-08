@@ -69,6 +69,17 @@ export async function PATCH(request: NextRequest, ctx: Context) {
     delete payload.id;
     delete payload.createdAt;
 
+    if (collection === "payments") {
+      const bookingId = payload.bookingId ?? previous.bookingId;
+      const partyId = payload.partyId ?? previous.partyId;
+      if (typeof bookingId !== "string" || !bookingId) {
+        return jsonError("A booking is required for every payment", 400);
+      }
+      if (typeof partyId !== "string" || !partyId) {
+        return jsonError("A client or vendor account is required for every payment", 400);
+      }
+    }
+
     const update = await applyDerivedFields(collection, payload, previous);
     update.updatedAt = nowISO();
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
@@ -14,6 +15,8 @@ export default function AccountsPage() {
   const payments = useAppStore((s) => s.payments);
   const markPaymentPaid = useAppStore((s) => s.markPaymentPaid);
   const addPayment = useAppStore((s) => s.addPayment);
+  const deletePayment = useAppStore((s) => s.deletePayment);
+  const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
   const airTickets = useAppStore((s) => s.airTickets);
   const visas = useAppStore((s) => s.visas);
   const hotels = useAppStore((s) => s.hotels);
@@ -162,6 +165,7 @@ export default function AccountsPage() {
                   <th className="pb-2 font-medium">Due</th>
                   <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Action</th>
+                  <th className="pb-2 font-medium">Delete</th>
                 </tr>
               </thead>
               <tbody>
@@ -182,6 +186,9 @@ export default function AccountsPage() {
                       >
                         Mark Paid
                       </Button>
+                    </td>
+                    <td className="py-2">
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this payment permanently?") && deletePayment(p.id)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
                 ))}

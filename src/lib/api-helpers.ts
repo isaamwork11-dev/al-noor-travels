@@ -431,7 +431,12 @@ export async function applyDerivedFields(
     next.perTicketPrice = perTicketPrice;
     next.totalAmount = perTicketPrice * pax;
     next.salePrice = next.totalAmount;
-    const passengerNames = Array.isArray(next.passengerNames)
+    const passengerNames = Array.isArray(next.passengers)
+      ? next.passengers
+          .filter((passenger): passenger is Record<string, unknown> => !!passenger && typeof passenger === "object")
+          .map((passenger) => String(passenger.fullName ?? "").trim())
+          .filter(Boolean)
+      : Array.isArray(next.passengerNames)
       ? next.passengerNames.filter((name): name is string => typeof name === "string" && name.trim().length > 0)
       : [String(next.passengerName ?? "")].filter(Boolean);
     next.passengerNames = passengerNames;

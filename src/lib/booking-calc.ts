@@ -16,6 +16,7 @@ export function normalizeTicketLine(
   return {
     id: ticket.id || nextId("tk"),
     passengerName: ticket.passengerName || "",
+    passenger: ticket.passenger,
     airline: ticket.airline || "",
     pnr: ticket.pnr || "",
     ticketNumber: ticket.ticketNumber || "",

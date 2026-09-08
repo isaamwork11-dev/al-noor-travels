@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDateTime, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select } from "@/components/ui";
@@ -10,7 +10,10 @@ export default function SuppliersPage() {
   const user = useAppStore((s) => s.currentUser);
   const suppliers = useAppStore((s) => s.suppliers);
   const addSupplier = useAppStore((s) => s.addSupplier);
+  const updateSupplier = useAppStore((s) => s.updateSupplier);
+  const deleteSupplier = useAppStore((s) => s.deleteSupplier);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     type: "Airline",
@@ -20,12 +23,22 @@ export default function SuppliersPage() {
 
   const canCreate =
     user?.role === "super_admin" || !!user?.permissions.createRecords;
+  const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
+  const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    addSupplier(form);
+    if (editingId) updateSupplier(editingId, form);
+    else addSupplier(form);
     setForm({ name: "", type: "Airline", mobile: "", email: "" });
     setOpen(false);
+    setEditingId(null);
+  };
+
+  const edit = (supplier: (typeof suppliers)[number]) => {
+    setEditingId(supplier.id);
+    setForm({ name: supplier.name, type: supplier.type, mobile: supplier.mobile, email: supplier.email });
+    setOpen(true);
   };
 
   return (
@@ -55,6 +68,7 @@ export default function SuppliersPage() {
                   <th className="pb-2 font-medium">Outstanding</th>
                   <th className="pb-2 font-medium">Created</th>
                   <th className="pb-2 font-medium">Updated</th>
+                  <th className="pb-2 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -67,6 +81,10 @@ export default function SuppliersPage() {
                     <td className="py-2.5 font-medium text-amber-700">{formatPKR(s.outstanding)}</td>
                     <td className="py-2.5 text-slate-500">{formatDateTime(s.createdAt)}</td>
                     <td className="py-2.5 text-slate-500">{formatDateTime(s.updatedAt || s.createdAt)}</td>
+                    <td className="py-2.5 whitespace-nowrap">
+                      {canEdit && <button type="button" className="mr-2 text-xs text-slate-600 hover:underline" onClick={() => edit(s)}><Pencil size={14} className="inline" /> Edit</button>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this supplier permanently?") && deleteSupplier(s.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -75,7 +93,7 @@ export default function SuppliersPage() {
         )}
       </Card>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Add Supplier">
+      <Modal open={open} onClose={() => { setOpen(false); setEditingId(null); }} title={editingId ? "Edit Supplier" : "Add Supplier"}>
         <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
           <Input
             label="Name"

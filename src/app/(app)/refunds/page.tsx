@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatPKR } from "@/lib/format";
 import type { ServiceType } from "@/lib/types";
@@ -13,8 +13,10 @@ export default function RefundsPage() {
   const airTickets = useAppStore((s) => s.airTickets);
   const customers = useAppStore((s) => s.customers);
   const addRefund = useAppStore((s) => s.addRefund);
+  const deleteRefund = useAppStore((s) => s.deleteRefund);
   const canCreate =
     user?.role === "super_admin" || !!user?.permissions.createRecords;
+  const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
 
   const [open, setOpen] = useState(false);
   const [ticketId, setTicketId] = useState(airTickets[0]?.id || "");
@@ -80,6 +82,7 @@ export default function RefundsPage() {
                   <th className="pb-2 font-medium">Charges</th>
                   <th className="pb-2 font-medium">Refund</th>
                   <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 font-medium">Action</th>
                   <th className="pb-2 font-medium">Date</th>
                 </tr>
               </thead>
@@ -96,6 +99,9 @@ export default function RefundsPage() {
                     <td className="py-2.5 font-medium text-rose-700">{formatPKR(r.refundAmount)}</td>
                     <td className="py-2.5">
                       <StatusBadge status={r.status} />
+                    </td>
+                    <td className="py-2.5">
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this refund permanently?") && deleteRefund(r.id)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                     <td className="py-2.5 text-slate-500">{formatDate(r.createdAt)}</td>
                   </tr>

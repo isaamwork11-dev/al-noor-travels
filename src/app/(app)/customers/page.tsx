@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { Plus, Eye } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDateTime, formatPKR } from "@/lib/format";
 import { Button, Card, EmptyState, Input, Modal, PageHeader } from "@/components/ui";
@@ -11,7 +11,10 @@ export default function CustomersPage() {
   const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
   const addCustomer = useAppStore((s) => s.addCustomer);
+  const updateCustomer = useAppStore((s) => s.updateCustomer);
+  const deleteCustomer = useAppStore((s) => s.deleteCustomer);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     mobile: "",
@@ -23,12 +26,22 @@ export default function CustomersPage() {
 
   const canCreate =
     user?.role === "super_admin" || !!user?.permissions.createRecords;
+  const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
+  const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    addCustomer(form);
+    if (editingId) updateCustomer(editingId, form);
+    else addCustomer(form);
     setForm({ name: "", mobile: "", cnic: "", passportNumber: "", email: "", address: "" });
     setOpen(false);
+    setEditingId(null);
+  };
+
+  const edit = (customer: (typeof customers)[number]) => {
+    setEditingId(customer.id);
+    setForm({ name: customer.name, mobile: customer.mobile, cnic: customer.cnic, passportNumber: customer.passportNumber, email: customer.email, address: customer.address });
+    setOpen(true);
   };
 
   return (
@@ -80,6 +93,8 @@ export default function CustomersPage() {
                       >
                         <Eye size={14} /> View
                       </Link>
+                      {canEdit && <button type="button" className="ml-2 text-xs text-slate-600 hover:underline" onClick={() => edit(c)}><Pencil size={14} className="inline" /> Edit</button>}
+                      {canDelete && <button type="button" className="ml-2 text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this customer permanently?") && deleteCustomer(c.id)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
                 ))}
@@ -89,7 +104,7 @@ export default function CustomersPage() {
         )}
       </Card>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Add Customer">
+      <Modal open={open} onClose={() => { setOpen(false); setEditingId(null); }} title={editingId ? "Edit Customer" : "Add Customer"}>
         <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
           <Input
             label="Full Name"
