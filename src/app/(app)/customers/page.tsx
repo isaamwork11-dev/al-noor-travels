@@ -15,6 +15,7 @@ export default function CustomersPage() {
   const deleteCustomer = useAppStore((s) => s.deleteCustomer);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: "",
     mobile: "",
@@ -29,13 +30,16 @@ export default function CustomersPage() {
   const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (editingId) updateCustomer(editingId, form);
-    else addCustomer(form);
+    if (saving) return;
+    setSaving(true);
+    if (editingId) await updateCustomer(editingId, form);
+    else await addCustomer(form);
     setForm({ name: "", mobile: "", cnic: "", passportNumber: "", email: "", address: "" });
     setOpen(false);
     setEditingId(null);
+    setSaving(false);
   };
 
   const edit = (customer: (typeof customers)[number]) => {
@@ -143,7 +147,7 @@ export default function CustomersPage() {
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Save Customer</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Customer"}</Button>
           </div>
         </form>
       </Modal>

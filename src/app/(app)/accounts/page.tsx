@@ -24,6 +24,7 @@ export default function AccountsPage() {
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const travelBookings = useAppStore((s) => s.travelBookings);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [savingPayment, setSavingPayment] = useState(false);
   const [form, setForm] = useState({ type: "Customer" as "Customer" | "Supplier", partyId: "", bookingId: "", amount: 0, status: "Paid" as "Pending" | "Paid" | "Partial", dueDate: todayISO(), note: "" });
 
   const canView =
@@ -55,8 +56,10 @@ export default function AccountsPage() {
 
   const submitPayment = async (event: FormEvent) => {
     event.preventDefault();
+    if (savingPayment) return;
     const party = parties.find((item) => item.id === form.partyId);
     if (!party || !form.bookingId || form.amount <= 0) return;
+    setSavingPayment(true);
     await addPayment({
       type: form.type,
       partyId: party.id,
@@ -71,6 +74,7 @@ export default function AccountsPage() {
       ...(form.status === "Paid" ? { paidDate: todayISO() } : {}),
     });
     setPaymentOpen(false);
+    setSavingPayment(false);
     setForm({ type: "Customer", partyId: "", bookingId: "", amount: 0, status: "Paid", dueDate: todayISO(), note: "" });
   };
 
@@ -218,7 +222,7 @@ export default function AccountsPage() {
           </Select>
           <Input label="Due Date" type="date" required value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
           <Input label="Note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-          <div className="flex justify-end sm:col-span-2"><Button type="submit">Save Payment</Button></div>
+          <div className="flex justify-end sm:col-span-2"><Button type="submit" disabled={savingPayment}>{savingPayment ? "Saving..." : "Save Payment"}</Button></div>
         </form>
       </Modal>
     </div>

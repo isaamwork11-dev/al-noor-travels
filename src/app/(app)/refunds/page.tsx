@@ -19,6 +19,7 @@ export default function RefundsPage() {
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
 
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [ticketId, setTicketId] = useState(airTickets[0]?.id || "");
   const [form, setForm] = useState({
     serviceType: "air_ticket" as ServiceType,
@@ -36,10 +37,12 @@ export default function RefundsPage() {
     ? Math.max(0, selected.salePrice - Number(form.airlineCharges) - Number(form.serviceCharges))
     : 0;
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (!user || !selected) return;
-    addRefund({
+    setSaving(true);
+    await addRefund({
       serviceType: form.serviceType,
       referenceId: selected.id,
       bookingId: selected.bookingId,
@@ -53,6 +56,7 @@ export default function RefundsPage() {
       createdBy: user.id,
     });
     setOpen(false);
+    setSaving(false);
   };
 
   return (
@@ -166,8 +170,8 @@ export default function RefundsPage() {
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!selected}>
-              Save Refund
+            <Button type="submit" disabled={!selected || saving}>
+              {saving ? "Saving..." : "Save Refund"}
             </Button>
           </div>
         </form>

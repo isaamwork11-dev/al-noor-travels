@@ -35,6 +35,7 @@ export default function NewTransportPage() {
     salePrice: 0,
     status: "Confirmed" as BookingStatus,
   });
+  const [saving, setSaving] = useState(false);
 
   // Edit mode hydrates from the client store after the record becomes available.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -42,22 +43,28 @@ export default function NewTransportPage() {
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (saving) return;
     if (!user) return;
-    const payload = {
+    setSaving(true);
+    try {
+      const payload = {
       ...form,
       costSAR: Number(form.costSAR),
       exchangeRate: Number(form.exchangeRate),
       costPrice: 0,
       salePrice: Number(form.salePrice),
       createdBy: user.id,
-    };
-    if (existing) await updateTransport(existing.id, payload);
-    else await addTransport(payload);
-    if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
-      window.location.reload();
-      return;
+      };
+      if (existing) await updateTransport(existing.id, payload);
+      else await addTransport(payload);
+      if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
+        window.location.reload();
+        return;
+      }
+      router.push("/transport");
+    } catch {
+      setSaving(false);
     }
-    router.push("/transport");
   };
 
   return (
@@ -156,8 +163,8 @@ export default function NewTransportPage() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" name="addAnother" variant="secondary"><Plus size={15} /> Save &amp; Add Another</Button>
-            <Button type="submit">Save Transfer</Button>
+            <Button type="submit" name="addAnother" variant="secondary" disabled={saving}><Plus size={15} /> {saving ? "Saving..." : "Save & Add Another"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : existing ? "Update Transfer" : "Save Transfer"}</Button>
           </div>
         </form>
       </Card>

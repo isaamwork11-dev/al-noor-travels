@@ -14,6 +14,7 @@ export default function SuppliersPage() {
   const deleteSupplier = useAppStore((s) => s.deleteSupplier);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: "",
     type: "Airline",
@@ -26,13 +27,16 @@ export default function SuppliersPage() {
   const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (editingId) updateSupplier(editingId, form);
-    else addSupplier(form);
+    if (saving) return;
+    setSaving(true);
+    if (editingId) await updateSupplier(editingId, form);
+    else await addSupplier(form);
     setForm({ name: "", type: "Airline", mobile: "", email: "" });
     setOpen(false);
     setEditingId(null);
+    setSaving(false);
   };
 
   const edit = (supplier: (typeof suppliers)[number]) => {
@@ -127,7 +131,7 @@ export default function SuppliersPage() {
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Save Supplier</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Supplier"}</Button>
           </div>
         </form>
       </Modal>

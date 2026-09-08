@@ -50,6 +50,7 @@ export default function NewUmrahPage() {
     emptyService("visa", exchangeRates.SAR || 73.9),
   ]);
   const [addKind, setAddKind] = useState<BookingServiceKind>("hotel");
+  const [saving, setSaving] = useState(false);
   // Edit mode hydrates the existing package and its nested services.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, packageName: existing.packageName, includesVisa: existing.includesVisa, includesTicket: existing.includesTicket, includesHotel: existing.includesHotel, includesTransport: existing.includesTransport, travelDate: existing.travelDate, returnDate: existing.returnDate, costPrice: existing.costPrice, salePrice: existing.salePrice, status: existing.status }); setServices(existing.services?.length ? existing.services : [emptyService("visa", exchangeRates.SAR || 73.9)]); } }, [existing, exchangeRates.SAR]);
@@ -72,10 +73,13 @@ export default function NewUmrahPage() {
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (saving) return;
     if (!user) return;
-    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-    const costSAR = services.reduce((sum, service) => sum + service.costSAR, 0);
-    const payload = {
+    setSaving(true);
+    try {
+      const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+      const costSAR = services.reduce((sum, service) => sum + service.costSAR, 0);
+      const payload = {
       ...form,
       includesVisa: services.some((service) => service.kind === "visa"),
       includesTicket: services.some((service) => service.kind === "ticket"),
@@ -87,15 +91,19 @@ export default function NewUmrahPage() {
       exchangeRate: exchangeRates.SAR || 73.9,
       services,
       createdBy: user.id,
-    };
-    if (existing) await updateUmrah(existing.id, payload);
-    else await addUmrah(payload);
-    if (submitter?.name === "addAnother") {
-      setForm((prev) => ({ ...prev, packageName: "", costPrice: 0, salePrice: 0 }));
-      setServices([emptyService("visa", exchangeRates.SAR || 73.9)]);
-      return;
+      };
+      if (existing) await updateUmrah(existing.id, payload);
+      else await addUmrah(payload);
+      if (submitter?.name === "addAnother") {
+        setForm((prev) => ({ ...prev, packageName: "", costPrice: 0, salePrice: 0 }));
+        setServices([emptyService("visa", exchangeRates.SAR || 73.9)]);
+        setSaving(false);
+        return;
+      }
+      router.push("/umrah");
+    } catch {
+      setSaving(false);
     }
-    router.push("/umrah");
   };
 
   return (
@@ -195,8 +203,8 @@ export default function NewUmrahPage() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" name="addAnother" variant="secondary"><Plus size={15} /> Save &amp; Add Another</Button>
-            <Button type="submit">Save Package</Button>
+            <Button type="submit" name="addAnother" variant="secondary" disabled={saving}><Plus size={15} /> {saving ? "Saving..." : "Save & Add Another"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : existing ? "Update Package" : "Save Package"}</Button>
           </div>
         </form>
       </Card>

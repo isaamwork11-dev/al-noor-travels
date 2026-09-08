@@ -19,6 +19,7 @@ export default function CashBookPage() {
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
 
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     type: "Income" as "Income" | "Expense",
     category: "Sales",
@@ -42,12 +43,14 @@ export default function CashBookPage() {
   const income = cashBook.filter((e) => e.type === "Income").reduce((a, e) => a + e.amountPKR, 0);
   const expense = cashBook.filter((e) => e.type === "Expense").reduce((a, e) => a + e.amountPKR, 0);
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (!user) return;
+    setSaving(true);
     const amount = Number(form.amount);
     const amountPKR = Math.round(amount * exchangeRates[form.currency]);
-    addCashEntry({
+    await addCashEntry({
       type: form.type,
       category: form.category,
       amount,
@@ -58,6 +61,7 @@ export default function CashBookPage() {
       createdBy: user.id,
     });
     setOpen(false);
+    setSaving(false);
     setForm({
       type: "Income",
       category: "Sales",
@@ -213,7 +217,7 @@ export default function CashBookPage() {
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Save Entry</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Entry"}</Button>
           </div>
         </form>
       </Modal>

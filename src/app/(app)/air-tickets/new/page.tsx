@@ -40,6 +40,7 @@ export default function NewAirTicketPage() {
     status: "Confirmed" as BookingStatus,
     currency: "PKR" as Currency,
   });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!existingTicket) return;
@@ -83,8 +84,11 @@ export default function NewAirTicketPage() {
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (saving) return;
     if (!user) return;
-    const payload = {
+    setSaving(true);
+    try {
+      const payload = {
       passengerName: form.passengerName,
       passengerNames: form.passengerNames,
       passengers: form.passengers,
@@ -105,14 +109,17 @@ export default function NewAirTicketPage() {
       status: form.status,
       currency: form.currency,
       createdBy: user.id,
-    };
-    if (existingTicket) await updateTicket(existingTicket.id, payload);
-    else await addTicket(payload);
-    if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
-      window.location.reload();
-      return;
+      };
+      if (existingTicket) await updateTicket(existingTicket.id, payload);
+      else await addTicket(payload);
+      if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "addAnother") {
+        window.location.reload();
+        return;
+      }
+      router.push("/air-tickets");
+    } catch {
+      setSaving(false);
     }
-    router.push("/air-tickets");
   };
 
   return (
@@ -232,8 +239,8 @@ export default function NewAirTicketPage() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" name="addAnother" variant="secondary"><Plus size={15} /> Save &amp; Add Another</Button>
-            <Button type="submit">Save Ticket</Button>
+            <Button type="submit" name="addAnother" variant="secondary" disabled={saving}><Plus size={15} /> {saving ? "Saving..." : "Save & Add Another"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : existingTicket ? "Update Ticket" : "Save Ticket"}</Button>
           </div>
         </form>
       </Card>

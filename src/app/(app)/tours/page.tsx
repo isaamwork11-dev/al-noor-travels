@@ -24,6 +24,7 @@ export default function ToursPage() {
 
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     customerId: customers[0]?.id || "",
     packageName: "",
@@ -35,19 +36,22 @@ export default function ToursPage() {
     status: "Confirmed" as BookingStatus,
   });
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (!user) return;
+    setSaving(true);
     const payload = {
       ...form,
       costPrice: Number(form.costPrice),
       salePrice: Number(form.salePrice),
       createdBy: user.id,
     };
-    if (editingId) updateTour(editingId, payload);
-    else addTour(payload);
+    if (editingId) await updateTour(editingId, payload);
+    else await addTour(payload);
     setOpen(false);
     setEditingId(null);
+    setSaving(false);
     setForm({
       customerId: customers[0]?.id || "",
       packageName: "",
@@ -203,7 +207,7 @@ export default function ToursPage() {
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Save Tour</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Tour"}</Button>
           </div>
         </form>
       </Modal>
