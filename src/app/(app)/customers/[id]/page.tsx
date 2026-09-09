@@ -54,42 +54,81 @@ export default function CustomerDetailPage() {
       <PageHeader title={customer.name} breadcrumb={`Home / Customers / ${customer.customerId}`} />
 
       <div className="mb-5 grid gap-4 lg:grid-cols-3">
-        <Card title="Profile" className="lg:col-span-1">
-          <dl className="space-y-3 text-sm">
-            <div>
-              <dt className="text-xs text-slate-500">Customer ID</dt>
-              <dd className="font-medium text-slate-800">{customer.customerId}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">Mobile</dt>
-              <dd className="text-slate-700">{customer.mobile}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">CNIC</dt>
-              <dd className="text-slate-700">{customer.cnic || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">Passport</dt>
-              <dd className="text-slate-700">{customer.passportNumber || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">Email</dt>
-              <dd className="text-slate-700">{customer.email || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">Address</dt>
-              <dd className="text-slate-700">{customer.address || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">Outstanding</dt>
-              <dd className="font-semibold text-rose-600">{formatPKR(customer.outstanding)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">Joined</dt>
-              <dd className="text-slate-700">{formatDate(customer.createdAt)}</dd>
-            </div>
-          </dl>
-        </Card>
+        <div className="space-y-4 lg:col-span-1">
+          <Card title="Profile">
+            <dl className="space-y-3 text-sm">
+              <div>
+                <dt className="text-xs text-slate-500">Customer ID</dt>
+                <dd className="font-medium text-slate-800">{customer.customerId}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Mobile</dt>
+                <dd className="text-slate-700">{customer.mobile}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">CNIC</dt>
+                <dd className="text-slate-700">{customer.cnic || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Passport</dt>
+                <dd className="text-slate-700">{customer.passportNumber || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Email</dt>
+                <dd className="text-slate-700">{customer.email || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Address</dt>
+                <dd className="text-slate-700">{customer.address || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Outstanding</dt>
+                <dd className="font-semibold text-rose-600">{formatPKR(customer.outstanding)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Joined</dt>
+                <dd className="text-slate-700">{formatDate(customer.createdAt)}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card title="WhatsApp Notes">
+            {(!customer.messages || customer.messages.length === 0) ? (
+              <EmptyState message="No WhatsApp notes for this customer." />
+            ) : (
+              <div className="space-y-3 rounded-2xl bg-[#111827] p-3 text-sm text-slate-200 shadow-inner">
+                {customer.messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.direction === "outgoing" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[90%] rounded-2xl px-3 py-2 ${
+                        message.direction === "outgoing"
+                          ? "bg-[#1f2937] text-slate-100"
+                          : "bg-[#2b3443] text-slate-100"
+                      }`}
+                    >
+                      {message.forwarded && (
+                        <div className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-slate-400">
+                          <span>↪</span>
+                          <span>Forwarded</span>
+                        </div>
+                      )}
+                      <p className="leading-relaxed whitespace-pre-line">{message.text}</p>
+                      <div className="mt-1 text-right text-[10px] text-slate-400">
+                        {new Date(message.sentAt).toLocaleTimeString("en-GB", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
 
         <Card title="Booking History" className="lg:col-span-2">
           <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-100 pb-2">

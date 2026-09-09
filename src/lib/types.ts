@@ -48,6 +48,14 @@ export type ServiceType =
   | "tour"
   | "insurance";
 
+export interface CustomerMessage {
+  id: string;
+  text: string;
+  sentAt: string;
+  direction: "incoming" | "outgoing";
+  forwarded?: boolean;
+}
+
 export interface Customer {
   id: string;
   customerId: string;
@@ -60,6 +68,7 @@ export interface Customer {
   outstanding: number;
   createdAt: string;
   updatedAt?: string;
+  messages?: CustomerMessage[];
 }
 
 export interface Supplier {

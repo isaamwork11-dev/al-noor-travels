@@ -75,6 +75,43 @@ export const DEMO_DATA: AppState = {
       address: "Karachi, Pakistan",
       outstanding: 45000,
       createdAt: "2024-01-10",
+      messages: [
+        {
+          id: "m1",
+          text: "AIR TICKETS MAIN PASSENGER NAME NAHI SHOW HO RAHA HAI MAGAR CUSTOMER NAME NAHI SHOW HO RAHA HAI MAGAR CUSTOMER NAME NAHI SHOW HO RAHA HAI",
+          sentAt: "2024-05-10T17:01:00",
+          direction: "incoming",
+          forwarded: true,
+        },
+        {
+          id: "m2",
+          text: "MALE FEMALE KA MASLA NAHI WOH FORM SE HATADO",
+          sentAt: "2024-05-10T17:02:00",
+          direction: "outgoing",
+          forwarded: false,
+        },
+        {
+          id: "m3",
+          text: "VISA K OPTION SUPPLIER KA OPTION NAHI HAI TOH KIS KA ACCOUNT MAIN WOH ADD HOGA ??? SUPPLIER ADD KARO",
+          sentAt: "2024-05-10T17:03:00",
+          direction: "incoming",
+          forwarded: true,
+        },
+        {
+          id: "m4",
+          text: "transport voucher per uper hamara logo wagera aye or price ka option ho k price show ho yeh nahi",
+          sentAt: "2024-05-10T17:04:00",
+          direction: "incoming",
+          forwarded: true,
+        },
+        {
+          id: "m5",
+          text: "Jis vendors k account mai ticket lagao uska statement banta jaye or usse pdf mai download karsaku date wise",
+          sentAt: "2024-05-10T17:05:00",
+          direction: "outgoing",
+          forwarded: false,
+        },
+      ],
     },
     {
       id: "c2",

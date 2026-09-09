@@ -88,6 +88,17 @@ const userSchema = new Schema<SchemaRecord>(
   baseOptions
 );
 
+const customerMessageSchema = new Schema<SchemaRecord>(
+  {
+    id: { type: String, required: true },
+    text: { type: String, required: true },
+    sentAt: { type: String, required: true },
+    direction: { type: String, enum: ["incoming", "outgoing"], required: true },
+    forwarded: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
 const customerSchema = new Schema<SchemaRecord>(
   {
     id: idField(),
@@ -101,6 +112,7 @@ const customerSchema = new Schema<SchemaRecord>(
     outstanding: { type: Number, default: 0 },
     createdAt: { type: String, required: true },
     updatedAt: { type: String },
+    messages: { type: [customerMessageSchema], default: [] },
   },
   baseOptions
 );
