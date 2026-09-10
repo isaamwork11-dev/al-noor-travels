@@ -23,6 +23,7 @@ export default function CustomersPage() {
     passportNumber: "",
     email: "",
     address: "",
+    outstanding: 0,
   });
 
   const canCreate =
@@ -34,9 +35,9 @@ export default function CustomersPage() {
     e.preventDefault();
     if (saving) return;
     setSaving(true);
-    if (editingId) await updateCustomer(editingId, form);
-    else await addCustomer(form);
-    setForm({ name: "", mobile: "", cnic: "", passportNumber: "", email: "", address: "" });
+    if (editingId) await updateCustomer(editingId, { ...form, outstanding: Number(form.outstanding) });
+    else await addCustomer({ ...form, outstanding: Number(form.outstanding) });
+    setForm({ name: "", mobile: "", cnic: "", passportNumber: "", email: "", address: "", outstanding: 0 });
     setOpen(false);
     setEditingId(null);
     setSaving(false);
@@ -44,7 +45,15 @@ export default function CustomersPage() {
 
   const edit = (customer: (typeof customers)[number]) => {
     setEditingId(customer.id);
-    setForm({ name: customer.name, mobile: customer.mobile, cnic: customer.cnic, passportNumber: customer.passportNumber, email: customer.email, address: customer.address });
+    setForm({
+      name: customer.name,
+      mobile: customer.mobile,
+      cnic: customer.cnic,
+      passportNumber: customer.passportNumber,
+      email: customer.email,
+      address: customer.address,
+      outstanding: customer.outstanding,
+    });
     setOpen(true);
   };
 
@@ -142,6 +151,12 @@ export default function CustomersPage() {
             label="Address"
             value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
+          />
+          <Input
+            label="Opening Outstanding"
+            type="number"
+            value={form.outstanding}
+            onChange={(e) => setForm({ ...form, outstanding: Number(e.target.value || 0) })}
           />
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>

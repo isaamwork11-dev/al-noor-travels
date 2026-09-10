@@ -63,10 +63,10 @@ interface AuthSlice {
 interface DataActions {
   resetDemo: () => Promise<void>;
   logActivity: (action: string, module: string, details: string) => void;
-  addCustomer: (data: Omit<Customer, "id" | "customerId" | "createdAt" | "outstanding">) => Promise<void>;
+  addCustomer: (data: Omit<Customer, "id" | "customerId" | "createdAt"> & { outstanding?: number }) => Promise<void>;
   updateCustomer: (id: string, patch: Partial<Customer>) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
-  addSupplier: (data: Omit<Supplier, "id" | "createdAt" | "outstanding">) => Promise<void>;
+  addSupplier: (data: Omit<Supplier, "id" | "createdAt"> & { outstanding?: number }) => Promise<void>;
   updateSupplier: (id: string, patch: Partial<Supplier>) => Promise<void>;
   deleteSupplier: (id: string) => Promise<void>;
   addTicket: (data: Omit<AirTicket, "id" | "bookingId" | "profit" | "createdAt">) => Promise<void>;
@@ -210,7 +210,10 @@ export const useAppStore = create<Store>((set, get) => ({
   },
 
   addCustomer: async (payload) => {
-    const created = await data.create<Customer>("customers", { ...payload, outstanding: 0 });
+    const created = await data.create<Customer>("customers", {
+      ...payload,
+      outstanding: Number(payload.outstanding ?? 0),
+    });
     set((s) => ({ customers: [created, ...s.customers] }));
   },
 
@@ -225,7 +228,10 @@ export const useAppStore = create<Store>((set, get) => ({
   },
 
   addSupplier: async (payload) => {
-    const created = await data.create<Supplier>("suppliers", { ...payload, outstanding: 0 });
+    const created = await data.create<Supplier>("suppliers", {
+      ...payload,
+      outstanding: Number(payload.outstanding ?? 0),
+    });
     set((s) => ({ suppliers: [created, ...s.suppliers] }));
   },
 

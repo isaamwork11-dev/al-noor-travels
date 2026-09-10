@@ -24,6 +24,11 @@ export function generateVoucherPDF(payload: VoucherPayload) {
     booking: "Travel Booking Invoice",
   };
 
+  const logo = typeof window === "undefined" ? null : new Image();
+  if (logo) {
+    logo.src = "/ssb-voucher-logo.jpg";
+  }
+
   doc.setFillColor(15, 28, 63);
   doc.rect(0, 0, 210, 36, "F");
   doc.setTextColor(255, 255, 255);
@@ -31,6 +36,9 @@ export function generateVoucherPDF(payload: VoucherPayload) {
   doc.text("SSB Travel & Tours", 14, 16);
   doc.setFontSize(11);
   doc.text(titles[payload.kind], 14, 26);
+  if (logo && logo.complete) {
+    doc.addImage(logo, "JPEG", 165, 6, 26, 26, undefined, "FAST");
+  }
   doc.setFontSize(10);
   doc.text(`Booking: ${payload.bookingId}`, 140, 16);
   doc.text(new Date().toLocaleDateString("en-GB"), 140, 26);

@@ -20,6 +20,7 @@ export default function SuppliersPage() {
     type: "Airline",
     mobile: "",
     email: "",
+    outstanding: 0,
   });
 
   const canCreate =
@@ -31,9 +32,9 @@ export default function SuppliersPage() {
     e.preventDefault();
     if (saving) return;
     setSaving(true);
-    if (editingId) await updateSupplier(editingId, form);
-    else await addSupplier(form);
-    setForm({ name: "", type: "Airline", mobile: "", email: "" });
+    if (editingId) await updateSupplier(editingId, { ...form, outstanding: Number(form.outstanding) });
+    else await addSupplier({ ...form, outstanding: Number(form.outstanding) });
+    setForm({ name: "", type: "Airline", mobile: "", email: "", outstanding: 0 });
     setOpen(false);
     setEditingId(null);
     setSaving(false);
@@ -41,7 +42,13 @@ export default function SuppliersPage() {
 
   const edit = (supplier: (typeof suppliers)[number]) => {
     setEditingId(supplier.id);
-    setForm({ name: supplier.name, type: supplier.type, mobile: supplier.mobile, email: supplier.email });
+    setForm({
+      name: supplier.name,
+      type: supplier.type,
+      mobile: supplier.mobile,
+      email: supplier.email,
+      outstanding: supplier.outstanding,
+    });
     setOpen(true);
   };
 
@@ -126,6 +133,12 @@ export default function SuppliersPage() {
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <Input
+            label="Opening Outstanding"
+            type="number"
+            value={form.outstanding}
+            onChange={(e) => setForm({ ...form, outstanding: Number(e.target.value || 0) })}
           />
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
