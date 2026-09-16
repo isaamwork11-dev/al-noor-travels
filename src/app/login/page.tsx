@@ -2,8 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plane } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { COMPANY } from "@/lib/company";
 import { Button, Input, PasswordInput } from "@/components/ui";
 
 export default function LoginPage() {
@@ -64,9 +64,9 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-white p-8 shadow-2xl">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-slate-200">
-            <img src="/ssb-logo.jpeg" alt="SSB Travel & Tours logo" className="h-full w-full object-contain" />
+            <img src="/ssb-logo.jpeg" alt={`${COMPANY.name} logo`} className="h-full w-full object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">SSB Travel & Tours</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{COMPANY.name}</h1>
           <p className="mt-1 text-sm text-slate-500">Travel Agency Management Portal</p>
           {/* <p className="mt-2 text-[11px] font-medium text-emerald-600">Connected to MongoDB Atlas</p> */}
         </div>

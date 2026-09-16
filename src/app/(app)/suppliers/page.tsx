@@ -1,14 +1,25 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { formatDateTime, formatPKR } from "@/lib/format";
+import { partyBalance } from "@/lib/accounting";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select } from "@/components/ui";
 
 export default function SuppliersPage() {
   const user = useAppStore((s) => s.currentUser);
   const suppliers = useAppStore((s) => s.suppliers);
+  const customers = useAppStore((s) => s.customers);
+  const airTickets = useAppStore((s) => s.airTickets);
+  const visas = useAppStore((s) => s.visas);
+  const hotels = useAppStore((s) => s.hotels);
+  const transports = useAppStore((s) => s.transports);
+  const umrahPackages = useAppStore((s) => s.umrahPackages);
+  const tourPackages = useAppStore((s) => s.tourPackages);
+  const travelBookings = useAppStore((s) => s.travelBookings);
+  const payments = useAppStore((s) => s.payments);
   const addSupplier = useAppStore((s) => s.addSupplier);
   const updateSupplier = useAppStore((s) => s.updateSupplier);
   const deleteSupplier = useAppStore((s) => s.deleteSupplier);
@@ -22,6 +33,13 @@ export default function SuppliersPage() {
     email: "",
     outstanding: 0,
   });
+
+  const data = useMemo(
+    () => ({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments }),
+    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments]
+  );
+
+  const balance = (id: string) => partyBalance("Supplier", id, data);
 
   const canCreate =
     user?.role === "super_admin" || !!user?.permissions.createRecords;
@@ -89,10 +107,11 @@ export default function SuppliersPage() {
                     <td className="py-2.5 text-slate-600">{s.type}</td>
                     <td className="py-2.5 text-slate-600">{s.mobile}</td>
                     <td className="py-2.5 text-slate-600">{s.email}</td>
-                    <td className="py-2.5 font-medium text-amber-700">{formatPKR(s.outstanding)}</td>
+                    <td className="py-2.5 font-medium text-amber-700">{formatPKR(balance(s.id))}</td>
                     <td className="py-2.5 text-slate-500">{formatDateTime(s.createdAt)}</td>
                     <td className="py-2.5 text-slate-500">{formatDateTime(s.updatedAt || s.createdAt)}</td>
                     <td className="py-2.5 whitespace-nowrap">
+                      <Link href="/accounts/ledger" className="mr-2 text-xs text-blue-600 hover:underline">Ledger</Link>
                       {canEdit && <button type="button" className="mr-2 text-xs text-slate-600 hover:underline" onClick={() => edit(s)}><Pencil size={14} className="inline" /> Edit</button>}
                       {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this supplier permanently?") && deleteSupplier(s.id)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import type { UserPermissions } from "@/lib/types";
 import { Button, Card, EmptyState, PageHeader, Select } from "@/components/ui";
@@ -29,11 +29,15 @@ export default function PermissionsPage() {
   const editableUsers = users.filter((u) => u.role !== "super_admin");
   const [userId, setUserId] = useState(editableUsers[0]?.id || "");
   const selected = users.find((u) => u.id === userId);
-  const [perms, setPerms] = useState<UserPermissions | null>(null);
+  const [perms, setPerms] = useState<UserPermissions | null>(() =>
+    selected ? { ...selected.permissions } : null
+  );
 
-  useEffect(() => {
-    if (selected) setPerms({ ...selected.permissions });
-  }, [selected]);
+  const selectUser = (nextUserId: string) => {
+    setUserId(nextUserId);
+    const next = users.find((u) => u.id === nextUserId);
+    setPerms(next ? { ...next.permissions } : null);
+  };
 
   if (!canManage) {
     return (
@@ -63,7 +67,7 @@ export default function PermissionsPage() {
               <Select
                 label="User"
                 value={userId}
-                onChange={(e) => setUserId(e.target.value)}
+                onChange={(e) => selectUser(e.target.value)}
               >
                 {editableUsers.map((u) => (
                   <option key={u.id} value={u.id}>

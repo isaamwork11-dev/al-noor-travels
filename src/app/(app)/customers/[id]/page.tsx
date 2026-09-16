@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR } from "@/lib/format";
-import { Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
+import { formatDate, formatPKR, todayISO } from "@/lib/format";
+import { buildPartyLedger } from "@/lib/accounting";
+import { generateLedgerPDF } from "@/lib/pdf";
+import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
+import { FileDown, HandCoins } from "lucide-react";
 
 const tabs = ["Tickets", "Visas", "Hotels", "Umrah", "Transport", "Payments"] as const;
 
@@ -13,15 +16,85 @@ export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const customers = useAppStore((s) => s.customers);
+  const suppliers = useAppStore((s) => s.suppliers);
   const airTickets = useAppStore((s) => s.airTickets);
   const visas = useAppStore((s) => s.visas);
   const hotels = useAppStore((s) => s.hotels);
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const transports = useAppStore((s) => s.transports);
+  const tourPackages = useAppStore((s) => s.tourPackages);
+  const travelBookings = useAppStore((s) => s.travelBookings);
   const payments = useAppStore((s) => s.payments);
+  const addPayment = useAppStore((s) => s.addPayment);
   const [tab, setTab] = useState<(typeof tabs)[number]>("Tickets");
 
+  const [payOpen, setPayOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [payForm, setPayForm] = useState({
+    bookingId: "",
+    amount: 0,
+    status: "Partial" as "Pending" | "Paid" | "Partial",
+    note: "",
+  });
+
   const customer = customers.find((c) => c.id === id);
+
+  const ledgerSource = useMemo(
+    () => ({
+      customers,
+      suppliers,
+      airTickets,
+      visas,
+      hotels,
+      transports,
+      umrahPackages,
+      tourPackages,
+      travelBookings,
+      payments,
+    }),
+    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments]
+  );
+
+  const ledger = useMemo(() => (customer ? buildPartyLedger("Customer", customer.id, ledgerSource) : null), [customer, ledgerSource]);
+
+  const bookingOptions = Array.from(
+    new Set([
+      ...airTickets,
+      ...visas,
+      ...hotels,
+      ...umrahPackages,
+      ...transports,
+      ...tourPackages,
+      ...travelBookings,
+    ]
+      .filter((x) => x.customerId === id)
+      .map((x) => x.bookingId))
+  ).filter(Boolean);
+
+  const submitPayment = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!customer || saving) return;
+    if (!payForm.bookingId || payForm.amount <= 0) return;
+    setSaving(true);
+    try {
+      await addPayment({
+        type: "Customer",
+        partyId: customer.id,
+        partyName: customer.name,
+        bookingId: payForm.bookingId,
+        amount: Number(payForm.amount),
+        currency: "PKR",
+        amountPKR: Number(payForm.amount),
+        dueDate: todayISO(),
+        status: payForm.status,
+        note: payForm.note,
+        ...(payForm.status === "Paid" ? { paidDate: todayISO() } : {}),
+      });
+      setPayOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const history = useMemo(() => {
     if (!customer) return null;
@@ -53,6 +126,39 @@ export default function CustomerDetailPage() {
     <div>
       <PageHeader title={customer.name} breadcrumb={`Home / Customers / ${customer.customerId}`} />
 
+      <div className="mb-5 flex flex-wrap gap-2">
+        <Button
+          variant="secondary"
+          onClick={() => ledger && generateLedgerPDF(ledger, "", "")}
+        >
+          <FileDown size={16} /> Download Statement PDF
+        </Button>
+        <Button onClick={() => setPayOpen(true)}>
+          <HandCoins size={16} /> Receive Payment
+        </Button>
+      </div>
+
+      {ledger && (
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <p className="text-xs text-slate-500">Total Bookings (Debit)</p>
+            <p className="mt-1 text-lg font-bold text-blue-800">{formatPKR(ledger.totalDebit)}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+            <p className="text-xs text-slate-500">Payments Received (Credit)</p>
+            <p className="mt-1 text-lg font-bold text-emerald-700">{formatPKR(ledger.totalCredit)}</p>
+          </div>
+          <div className="rounded-xl border border-rose-100 bg-rose-50 p-4">
+            <p className="text-xs text-slate-500">Balance Payable</p>
+            <p className="mt-1 text-lg font-bold text-rose-700">{formatPKR(ledger.closing)}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-xs text-slate-500">No. of Entries</p>
+            <p className="mt-1 text-lg font-bold text-slate-800">{ledger.rows.length}</p>
+          </div>
+        </div>
+      )}
+
       <div className="mb-5 grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-1">
           <Card title="Profile">
@@ -82,8 +188,8 @@ export default function CustomerDetailPage() {
                 <dd className="text-slate-700">{customer.address || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Outstanding</dt>
-                <dd className="font-semibold text-rose-600">{formatPKR(customer.outstanding)}</dd>
+                <dt className="text-xs text-slate-500">Outstanding (computed)</dt>
+                <dd className="font-semibold text-rose-600">{formatPKR(ledger?.closing ?? customer.outstanding)}</dd>
               </div>
               <div>
                 <dt className="text-xs text-slate-500">Joined</dt>
@@ -228,6 +334,57 @@ export default function CustomerDetailPage() {
           )}
         </Card>
       </div>
+
+      <Modal open={payOpen} onClose={() => setPayOpen(false)} title="Receive Payment">
+        <form onSubmit={submitPayment} className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Select
+              label="Booking"
+              required
+              value={payForm.bookingId}
+              onChange={(e) => setPayForm({ ...payForm, bookingId: e.target.value })}
+            >
+              <option value="">Select booking</option>
+              {bookingOptions.map((bookingId) => (
+                <option key={bookingId} value={bookingId}>
+                  {bookingId}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Input
+            label="Amount (PKR)"
+            type="number"
+            min={1}
+            required
+            value={payForm.amount}
+            onChange={(e) => setPayForm({ ...payForm, amount: Number(e.target.value) })}
+          />
+          <Select
+            label="Status"
+            value={payForm.status}
+            onChange={(e) => setPayForm({ ...payForm, status: e.target.value as "Pending" | "Paid" | "Partial" })}
+          >
+            <option value="Paid">Full Payment (Paid)</option>
+            <option value="Partial">Partial / Installment</option>
+            <option value="Pending">Pending</option>
+          </Select>
+          <Input
+            label="Note (optional)"
+            className="sm:col-span-2"
+            value={payForm.note}
+            onChange={(e) => setPayForm({ ...payForm, note: e.target.value })}
+          />
+          <div className="flex justify-end gap-2 sm:col-span-2">
+            <Button type="button" variant="secondary" onClick={() => setPayOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save Payment"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

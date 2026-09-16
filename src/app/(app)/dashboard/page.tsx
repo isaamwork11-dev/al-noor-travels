@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import {
   Plane,
   FileText,
@@ -8,19 +8,17 @@ import {
   Bus,
   Users,
   Wallet,
-  CalendarDays,
   BadgeCheck,
   ArrowRightLeft,
+  Eye,
+  EyeOff,
+  Truck,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatPKR, todayISO } from "@/lib/format";
-import {
-  Card,
-  PageHeader,
-  StatCard,
-  StatusBadge,
-} from "@/components/ui";
-import { SalesLineChart, ServicesPieChart } from "@/components/Charts";
+import { formatDate, formatPKR, todayISO } from "@/lib/format";
+import { totalPayables, totalReceivables } from "@/lib/accounting";
+import { Button, Card, PageHeader, StatusBadge } from "@/components/ui";
+import type { ReactNode } from "react";
 
 type DashboardRow = {
   bookingId: string;
@@ -46,11 +44,40 @@ function BookingTable({ rows }: { rows: DashboardRow[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[520px] text-left text-sm">
-        <thead><tr className="border-b border-slate-100 text-xs text-slate-500"><th className="pb-2 font-medium">Booking ID</th><th className="pb-2 font-medium">Customer</th><th className="pb-2 font-medium">Service</th><th className="pb-2 font-medium">Date</th><th className="pb-2 font-medium">Status</th></tr></thead>
-        <tbody>{rows.map((row) => <tr key={row.bookingId + row.service} className="border-b border-slate-50 last:border-0"><td className="py-2.5"><div className="flex items-center gap-2"><Icon type={row.icon} /><span className="font-medium text-slate-700">{row.bookingId}</span></div></td><td className="py-2.5 text-slate-600">{row.customer}</td><td className="py-2.5 text-slate-600">{row.service}</td><td className="py-2.5 text-slate-600">{row.date}</td><td className="py-2.5"><StatusBadge status={row.status} /></td></tr>)}</tbody>
+        <thead>
+          <tr className="border-b border-slate-100 text-xs text-slate-500">
+            <th className="pb-2 font-medium">Booking ID</th>
+            <th className="pb-2 font-medium">Customer</th>
+            <th className="pb-2 font-medium">Service</th>
+            <th className="pb-2 font-medium">Date</th>
+            <th className="pb-2 font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.bookingId + row.service} className="border-b border-slate-50 last:border-0">
+              <td className="py-2.5">
+                <div className="flex items-center gap-2">
+                  <Icon type={row.icon} />
+                  <span className="font-medium text-slate-700">{row.bookingId}</span>
+                </div>
+              </td>
+              <td className="py-2.5 text-slate-600">{row.customer}</td>
+              <td className="py-2.5 text-slate-600">{row.service}</td>
+              <td className="py-2.5 text-slate-600">{row.date}</td>
+              <td className="py-2.5">
+                <StatusBadge status={row.status} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
       </table>
     </div>
   );
+}
+
+function Masked() {
+  return <span className="tracking-widest text-slate-500">••••••••</span>;
 }
 
 export default function DashboardPage() {
@@ -65,31 +92,33 @@ export default function DashboardPage() {
   const tourPackages = useAppStore((s) => s.tourPackages);
   const travelBookings = useAppStore((s) => s.travelBookings);
   const payments = useAppStore((s) => s.payments);
-  const showCost = user?.permissions.viewCost || user?.role === "super_admin";
-  const showProfit = user?.permissions.viewProfit || user?.role === "super_admin";
-  const showFinancials = !!(showCost || showProfit);
+
+  const canShow = user?.role === "super_admin";
+  const [showFinancials, setShowFinancials] = useState(false);
+  const reveal = canShow && showFinancials;
 
   const totalSales =
-    airTickets.reduce((a, t) => a + t.salePrice, 0) +
-    visas.reduce((a, t) => a + t.salePrice, 0) +
-    hotels.reduce((a, t) => a + t.salePrice, 0) +
-    transports.reduce((a, t) => a + t.salePrice, 0) +
-    umrahPackages.reduce((a, t) => a + t.salePrice, 0) +
-    tourPackages.reduce((a, t) => a + t.salePrice, 0) +
-    travelBookings.reduce((a, t) => a + t.totalSale, 0);
+    airTickets.reduce((a, t) => a + (t.salePrice || 0), 0) +
+    visas.reduce((a, t) => a + (t.salePrice || 0), 0) +
+    hotels.reduce((a, t) => a + (t.salePrice || 0), 0) +
+    transports.reduce((a, t) => a + (t.salePrice || 0), 0) +
+    umrahPackages.reduce((a, t) => a + (t.salePrice || 0), 0) +
+    tourPackages.reduce((a, t) => a + (t.salePrice || 0), 0) +
+    travelBookings.reduce((a, t) => a + (t.totalSale || 0), 0);
 
   const totalCost =
-    airTickets.reduce((a, t) => a + t.costPrice, 0) +
-    visas.reduce((a, t) => a + t.costPrice, 0) +
-    hotels.reduce((a, t) => a + t.costPrice, 0) +
-    transports.reduce((a, t) => a + t.costPrice, 0) +
-    umrahPackages.reduce((a, t) => a + t.costPrice, 0) +
-    tourPackages.reduce((a, t) => a + t.costPrice, 0) +
-    travelBookings.reduce((a, t) => a + t.totalCostPKR, 0);
+    airTickets.reduce((a, t) => a + (t.costPrice || 0), 0) +
+    visas.reduce((a, t) => a + (t.costPrice || 0), 0) +
+    hotels.reduce((a, t) => a + (t.costPrice || 0), 0) +
+    transports.reduce((a, t) => a + (t.costPrice || 0), 0) +
+    umrahPackages.reduce((a, t) => a + (t.costPrice || 0), 0) +
+    tourPackages.reduce((a, t) => a + (t.costPrice || 0), 0) +
+    travelBookings.reduce((a, t) => a + (t.totalCostPKR || 0), 0);
 
   const totalProfit = totalSales - totalCost;
-  const receivables = customers.reduce((a, c) => a + c.outstanding, 0);
 
+  const receivable = totalReceivables({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments });
+  const payable = totalPayables({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments });
 
   const getCustomerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
@@ -97,7 +126,7 @@ export default function DashboardPage() {
     ...airTickets.map((t) => ({
       bookingId: t.bookingId,
       customer: t.passengerName,
-      service: `Air Ticket (${t.sector})`,
+      service: `Air Ticket (${t.sector})${t.tripType === "Return" ? " — Return" : ""}`,
       date: t.travelDate,
       status: t.status,
       icon: "plane" as const,
@@ -134,204 +163,192 @@ export default function DashboardPage() {
       status: u.status,
       icon: "umrah" as const,
     })),
-    ...travelBookings.flatMap((b) => b.services.map((service) => ({
-      bookingId: b.bookingId,
-      customer: getCustomerName(b.customerId),
-      service: `${service.kind.toUpperCase()} — ${service.title}`,
-      date: service.kind === "hotel"
-        ? service.details.checkIn || b.travelDate
-        : service.kind === "transport"
-          ? service.details.date || b.travelDate
-          : service.kind === "ticket"
-            ? service.tickets?.map((ticket) => ticket.travelDate).filter(Boolean).sort()[0] || b.travelDate
-            : b.travelDate,
-      status: b.status,
-      icon: service.kind === "hotel" ? "hotel" as const : service.kind === "transport" ? "bus" as const : service.kind === "ticket" ? "plane" as const : "visa" as const,
-    }))),
+    ...travelBookings.flatMap((b) =>
+      b.services.map((service) => ({
+        bookingId: b.bookingId,
+        customer: getCustomerName(b.customerId),
+        service: `${service.kind.toUpperCase()} — ${service.title}`,
+        date:
+          service.kind === "hotel"
+            ? service.details.checkIn || b.travelDate
+            : service.kind === "transport"
+              ? service.details.date || b.travelDate
+              : service.kind === "ticket"
+                ? service.tickets?.map((ticket) => ticket.travelDate).filter(Boolean).sort()[0] || b.travelDate
+                : b.travelDate,
+        status: b.status,
+        icon: service.kind === "hotel" ? "hotel" as const : service.kind === "transport" ? "bus" as const : service.kind === "ticket" ? "plane" as const : "visa" as const,
+      }))
+    ),
   ];
 
   const upcoming = allBookings
-    .filter((booking) => booking.date >= todayISO() && !["Completed", "Cancelled", "Refunded"].includes(booking.status))
+    .filter((b) => b.date >= todayISO() && !["Completed", "Cancelled", "Refunded"].includes(b.status))
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 6);
+    .slice(0, 8);
 
-  const recent = [...upcoming].reverse().slice(0, 5);
-  const pendingPayments = payments.filter((p) => p.status === "Pending").slice(0, 5);
+  const recent = allBookings
+    .filter((b) => !["Cancelled", "Refunded"].includes(b.status))
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 8);
 
-  const serviceCounts = [
-    { name: "Air Tickets", count: airTickets.length, href: "/air-tickets", color: "text-blue-600 bg-blue-50" },
-    { name: "Visas", count: visas.length, href: "/visas", color: "text-emerald-600 bg-emerald-50" },
-    { name: "Hotels", count: hotels.length, href: "/hotels", color: "text-violet-600 bg-violet-50" },
-    { name: "Transport", count: transports.length, href: "/transport", color: "text-orange-600 bg-orange-50" },
-    { name: "Umrah Packages", count: umrahPackages.length, href: "/umrah", color: "text-cyan-600 bg-cyan-50" },
-    { name: "Tour Packages", count: tourPackages.length, href: "/tours", color: "text-rose-600 bg-rose-50" },
-  ];
+  const pendingPayments = payments.filter((p) => p.status === "Pending").slice(0, 6);
 
-  const pieData = [
-    { name: "Air Tickets", value: 45 },
-    { name: "Umrah Packages", value: 25 },
-    { name: "Hotels", value: 15 },
-    { name: "Visas", value: 10 },
-    { name: "Transport", value: 5 },
-  ];
+  const totalRecords =
+    airTickets.length +
+    visas.length +
+    hotels.length +
+    transports.length +
+    umrahPackages.length +
+    tourPackages.length +
+    travelBookings.length;
 
   return (
     <div>
       <PageHeader title="Dashboard" breadcrumb="Home / Dashboard" />
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard title="Today's Bookings" value={12} icon={<CalendarDays size={18} />} color="blue" />
-        <StatCard title="Today's Visa Cases" value="08" icon={<FileText size={18} />} color="green" />
-        <StatCard title="Hotel Check In" value="05" icon={<Hotel size={18} />} color="purple" />
-        <StatCard title="Today's Transfers" value="07" icon={<Bus size={18} />} color="orange" />
-        <StatCard
-          title="Total Customers"
-          value={customers.length.toLocaleString()}
-          icon={<Users size={18} />}
-          color="teal"
-        />
-        <StatCard
-          title="Receivables"
-          value={showFinancials ? formatPKR(receivables) : "••••"}
-          icon={<Wallet size={18} />}
-          color="red"
-        />
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <MiniStat label="All Bookings (Tickets · Visas · Hotels · Transport · Umrah)" value={totalRecords.toLocaleString()} icon={<ArrowRightLeft size={18} />} tone="from-blue-500 to-blue-600" />
+        <MiniStat label="Total Customers" value={customers.length.toLocaleString()} icon={<Users size={18} />} tone="from-emerald-500 to-emerald-600" />
+        <MiniStat label="Total Suppliers" value={suppliers.length.toLocaleString()} icon={<Truck size={18} />} tone="from-violet-500 to-violet-600" />
+        <MiniStat label="Pending Payments" value={payments.filter((p) => p.status !== "Paid").length.toLocaleString()} icon={<Wallet size={18} />} tone="from-orange-500 to-orange-600" />
       </div>
 
-
-      <div className="mb-5 grid gap-4 xl:grid-cols-3">
-        <Card title="Upcoming Bookings" className="xl:col-span-1">
-          <BookingTable rows={upcoming.slice(0, 5)} />
-        </Card>
-
-        <div className="space-y-4">
-          <Card title="Sales Overview (This Month)">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2.5">
-                <span className="text-sm text-slate-600">Total Sales</span>
-                <span className="font-bold text-blue-700">{formatPKR(totalSales || 1875000)}</span>
+      <div className="mb-5">
+        <Card
+          title="Financials (Sale & Profit)"
+          action={
+            <Button
+              variant="secondary"
+              className="!px-2 !py-1 text-xs"
+              onClick={() => setShowFinancials((v) => !v)}
+              disabled={!canShow}
+            >
+              {reveal ? <EyeOff size={14} /> : <Eye size={14} />}
+              {reveal ? "Hide" : "Show Sale / Profit"}
+            </Button>
+          }
+        >
+          {!canShow ? (
+            <p className="py-6 text-center text-sm text-slate-400">
+              You do not have permission to view sale &amp; profit figures.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl bg-blue-50 p-4">
+                <p className="text-xs text-slate-500">Total Sales</p>
+                <p className="mt-1 text-xl font-bold text-blue-700">
+                  {reveal ? formatPKR(totalSales) : <Masked />}
+                </p>
               </div>
-              {showCost && (
-                <div className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2.5">
-                  <span className="text-sm text-slate-600">Total Cost</span>
-                  <span className="font-bold text-rose-700">{formatPKR(totalCost || 1520000)}</span>
-                </div>
-              )}
-              {showProfit && (
-                <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2.5">
-                  <span className="text-sm text-slate-600">Total Profit</span>
-                  <span className="font-bold text-emerald-700">{formatPKR(totalProfit || 355000)}</span>
-                </div>
-              )}
-              {!showFinancials && (
-                <p className="text-xs text-slate-400">Cost & profit hidden for your role.</p>
-              )}
+              <div className="rounded-xl bg-rose-50 p-4">
+                <p className="text-xs text-slate-500">Total Cost</p>
+                <p className="mt-1 text-xl font-bold text-rose-700">
+                  {reveal ? formatPKR(totalCost) : <Masked />}
+                </p>
+              </div>
+              <div className="rounded-xl bg-emerald-50 p-4">
+                <p className="text-xs text-slate-500">Total Profit</p>
+                <p className="mt-1 text-xl font-bold text-emerald-700">
+                  {reveal ? formatPKR(totalProfit) : <Masked />}
+                </p>
+              </div>
             </div>
-          </Card>
-          <Card title="Top Services (By Sales)">
-            <ServicesPieChart data={pieData} />
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          <Card title="Sales Chart (This Month)">
-            <SalesLineChart showFinancials={showFinancials} />
-          </Card>
-          <Card title="Pending Payments">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 text-xs text-slate-500">
-                    <th className="pb-2 font-medium">Type</th>
-                    <th className="pb-2 font-medium">Name</th>
-                    <th className="pb-2 font-medium">Due</th>
-                    <th className="pb-2 font-medium">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingPayments.map((p) => (
-                    <tr key={p.id} className="border-b border-slate-50">
-                      <td className="py-2">
-                        <span
-                          className={
-                            p.type === "Customer"
-                              ? "text-xs font-medium text-blue-600"
-                              : "text-xs font-medium text-orange-600"
-                          }
-                        >
-                          {p.type}
-                        </span>
-                      </td>
-                      <td className="py-2 text-slate-700">{p.partyName}</td>
-                      <td className="py-2 font-medium text-slate-800">
-                        {showFinancials ? formatPKR(p.amountPKR) : "••••"}
-                      </td>
-                      <td className="py-2 text-slate-500">{p.dueDate}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-        {serviceCounts.map((s) => (
-          <Link
-            key={s.name}
-            href={s.href}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
-          >
-            <div className={`mb-2 inline-flex rounded-lg p-2 ${s.color}`}>
-              <ArrowRightLeft size={16} />
-            </div>
-            <p className="text-xs text-slate-500">{s.name}</p>
-            <p className="text-xl font-bold text-slate-800">{String(s.count).padStart(2, "0")}</p>
-            <p className="mt-1 text-[10px] font-medium text-blue-600">View all →</p>
-          </Link>
-        ))}
+          )}
+          <p className="mt-3 text-xs text-slate-400">
+            Sale / profit figures stay hidden by default — press “Show Sale / Profit” whenever you need them.
+          </p>
+        </Card>
       </div>
 
       <div className="mb-5 grid gap-4 lg:grid-cols-2">
-        <Card title="Recent Bookings">
-          <BookingTable rows={recent} />
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+          <p className="text-xs text-rose-600">Customer Outstanding (Receivables)</p>
+          <p className="mt-1 text-lg font-bold text-rose-700">
+            {reveal ? formatPKR(receivable) : <Masked />}
+          </p>
+        </div>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-xs text-amber-700">Supplier Payables</p>
+          <p className="mt-1 text-lg font-bold text-amber-800">
+            {reveal ? formatPKR(payable) : <Masked />}
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-5 grid gap-4 xl:grid-cols-2">
+        <Card title="Upcoming Bookings">
+          {upcoming.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-400">No upcoming bookings.</p>
+          ) : (
+            <BookingTable rows={upcoming} />
+          )}
         </Card>
-        <Card title="Receivables / Payables Snapshot">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl bg-rose-50 p-4">
-              <p className="text-xs text-rose-600">Customer Outstanding</p>
-              <p className="mt-1 text-lg font-bold text-rose-700">
-                {showFinancials ? formatPKR(receivables) : "••••"}
-              </p>
-            </div>
-            <div className="rounded-xl bg-amber-50 p-4">
-              <p className="text-xs text-amber-700">Supplier Outstanding</p>
-              <p className="mt-1 text-lg font-bold text-amber-800">
-                {showFinancials
-                  ? formatPKR(suppliers.reduce((a, s) => a + s.outstanding, 0))
-                  : "••••"}
-              </p>
-            </div>
-          </div>
+        <Card title="Recent Bookings">
+          {recent.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-400">No bookings yet.</p>
+          ) : (
+            <BookingTable rows={recent} />
+          )}
         </Card>
       </div>
 
-      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {[
-          { label: "Total Bookings", value: upcoming.length + 240 },
-          { label: "Completed Bookings", value: 156 },
-          { label: "Cancelled Bookings", value: 22 },
-          { label: "Refunded Bookings", value: 18 },
-          { label: "Total Customers", value: customers.length },
-          { label: "Total Suppliers", value: suppliers.length },
-        ].map((x) => (
-          <div key={x.label} className="text-center">
-            <p className="text-lg font-bold text-slate-800">{x.value.toLocaleString()}</p>
-            <p className="text-[11px] text-slate-500">{x.label}</p>
+      <Card title="Pending Payments">
+        {pendingPayments.length === 0 ? (
+          <p className="py-8 text-center text-sm text-slate-400">No pending payments.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs text-slate-500">
+                  <th className="pb-2 font-medium">Type</th>
+                  <th className="pb-2 font-medium">Name</th>
+                  <th className="pb-2 font-medium">Amount</th>
+                  <th className="pb-2 font-medium">Due Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingPayments.map((p) => (
+                  <tr key={p.id} className="border-b border-slate-50">
+                    <td className="py-2">
+                      <span className={p.type === "Customer" ? "text-xs font-medium text-blue-600" : "text-xs font-medium text-orange-600"}>
+                        {p.type}
+                      </span>
+                    </td>
+                    <td className="py-2 text-slate-700">{p.partyName}</td>
+                    <td className="py-2 font-medium text-slate-800">
+                      {reveal ? formatPKR(p.amountPKR) : <Masked />}
+                    </td>
+                    <td className="py-2 text-slate-500">{formatDate(p.dueDate)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  icon,
+  tone,
+}: {
+  label: string;
+  value: string;
+  icon: ReactNode;
+  tone: string;
+}) {
+  return (
+    <div className={`rounded-xl bg-gradient-to-br p-4 text-white shadow-sm ${tone}`}>
+      <div className="flex items-start justify-between">
+        <p className="text-xs font-medium text-white/90">{label}</p>
+        <span className="rounded-lg bg-white/20 p-1.5">{icon}</span>
       </div>
+      <p className="mt-3 text-2xl font-bold">{value}</p>
     </div>
   );
 }

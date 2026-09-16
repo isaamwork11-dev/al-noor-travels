@@ -26,6 +26,7 @@ import {
 import { useState } from "react";
 import { cn } from "./ui";
 import { useAppStore } from "@/lib/store";
+import { COMPANY } from "@/lib/company";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -154,10 +155,10 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         <div className="border-b border-white/10 px-4 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-white/20">
-              <img src="/ssb-logo.jpeg" alt="SSB Travel & Tours" className="h-full w-full object-contain" />
+              <img src="/ssb-logo.jpeg" alt={COMPANY.name} className="h-full w-full object-contain" />
             </div>
             <div>
-              <p className="text-sm font-bold leading-tight">SSB Travel & Tours</p>
+              <p className="text-sm font-bold leading-tight">{COMPANY.name}</p>
               <p className="text-[10px] text-slate-300">Travel Agency Management</p>
             </div>
           </div>

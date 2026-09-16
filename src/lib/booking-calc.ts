@@ -22,6 +22,8 @@ export function normalizeTicketLine(
     ticketNumber: ticket.ticketNumber || "",
     sector: ticket.sector || "",
     travelDate: ticket.travelDate || "",
+    returnDate: ticket.returnDate || "",
+    tripType: ticket.tripType || "Oneway",
     supplierId: ticket.supplierId || "",
     costSAR,
     exchangeRate,

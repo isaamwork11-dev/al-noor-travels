@@ -36,8 +36,9 @@ export default function VouchersPage() {
           { label: "Room", value: h.roomType },
           { label: "Check-in", value: formatDate(h.checkIn) },
           { label: "Check-out", value: formatDate(h.checkOut) },
+          ...(h.referenceNumber ? [{ label: "Confirmation No", value: h.referenceNumber }] : []),
+          ...(h.contactPerson ? [{ label: "Hotel Contact", value: h.contactPerson }] : []),
         ],
-        amount: formatPKR(h.salePrice),
       });
     } else if (kind === "transport") {
       const t = transports.find((x) => x.id === id);
@@ -52,8 +53,11 @@ export default function VouchersPage() {
           { label: "Drop-off", value: t.dropoff },
           { label: "Date", value: `${formatDate(t.date)} ${t.time}` },
           { label: "Vehicle", value: t.vehicle },
+          ...(t.driver ? [{ label: "Driver", value: t.driver }] : []),
+          ...(t.contactPerson
+            ? [{ label: "Driver / Contact No", value: t.contactPerson }]
+            : []),
         ],
-        amount: formatPKR(t.salePrice),
       });
     } else if (kind === "umrah") {
       const u = umrahPackages.find((x) => x.id === id);

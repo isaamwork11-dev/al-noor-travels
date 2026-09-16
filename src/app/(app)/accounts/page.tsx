@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR } from "@/lib/format";
+import { formatDate, formatPKR, todayISO } from "@/lib/format";
+import { monthlySummary, partyBalance, totalPayables, totalReceivables } from "@/lib/accounting";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
-import { todayISO } from "@/lib/format";
 
 export default function AccountsPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -22,13 +22,39 @@ export default function AccountsPage() {
   const hotels = useAppStore((s) => s.hotels);
   const transports = useAppStore((s) => s.transports);
   const umrahPackages = useAppStore((s) => s.umrahPackages);
+  const tourPackages = useAppStore((s) => s.tourPackages);
   const travelBookings = useAppStore((s) => s.travelBookings);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [form, setForm] = useState({ type: "Customer" as "Customer" | "Supplier", partyId: "", bookingId: "", amount: 0, status: "Paid" as "Pending" | "Paid" | "Partial", dueDate: todayISO(), note: "" });
 
+  const monthStart = () => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  };
+  const [from, setFrom] = useState(monthStart);
+  const [to, setTo] = useState(todayISO);
+
   const canView =
     user?.role === "super_admin" || !!user?.permissions.viewAccounts;
+
+  const data = useMemo(
+    () => ({
+      customers,
+      suppliers,
+      airTickets,
+      visas,
+      hotels,
+      transports,
+      umrahPackages,
+      tourPackages,
+      travelBookings,
+      payments,
+    }),
+    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments]
+  );
+
+  const summary = useMemo(() => monthlySummary(from, to, data), [from, to, data]);
 
   if (!canView) {
     return (
@@ -41,8 +67,15 @@ export default function AccountsPage() {
     );
   }
 
-  const receivables = customers.filter((c) => c.outstanding > 0);
-  const payables = suppliers.filter((s) => s.outstanding > 0);
+  const receivables = customers
+    .map((c) => ({ name: c.name, id: c.id, outstanding: partyBalance("Customer", c.id, data) }))
+    .filter((c) => c.outstanding > 0)
+    .sort((a, b) => b.outstanding - a.outstanding);
+  const payables = suppliers
+    .map((s) => ({ name: s.name, id: s.id, outstanding: partyBalance("Supplier", s.id, data) }))
+    .filter((s) => s.outstanding > 0)
+    .sort((a, b) => b.outstanding - a.outstanding);
+
   const pending = payments.filter((p) => p.status !== "Paid");
   const parties = form.type === "Customer" ? customers : suppliers;
   const bookingOptions = Array.from(new Set([
@@ -91,12 +124,51 @@ export default function AccountsPage() {
         </Link>
       </div>
 
+      <Card title="Month Review (Date-wise Hisaab)" className="mb-5">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-slate-600">From Date</span>
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-slate-600">To Date</span>
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+          <div className="flex items-end gap-2">
+            <Button variant="secondary" className="!py-2 text-xs" onClick={() => { setFrom(monthStart()); setTo(todayISO); }}>
+              This Month
+            </Button>
+            <Button variant="secondary" className="!py-2 text-xs" onClick={() => { setFrom(""); setTo(""); }}>
+              All Time
+            </Button>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <Summarized label="Sales (Bookings)" value={formatPKR(summary.sales)} tone="text-blue-800" />
+          <Summarized label="Cost" value={formatPKR(summary.costs)} tone="text-rose-700" />
+          <Summarized label="Received from Clients" value={formatPKR(summary.received)} tone="text-emerald-700" />
+          <Summarized label="Paid to Suppliers" value={formatPKR(summary.paid)} tone="text-orange-700" />
+          <Summarized label="Receivables (Clients owe)" value={formatPKR(summary.receivables)} tone="text-rose-700" />
+          <Summarized label="Payables (We owe)" value={formatPKR(summary.payables)} tone="text-amber-700" />
+        </div>
+      </Card>
+
       <div className="mb-5 grid gap-4 lg:grid-cols-2">
         <Card title="Customer Receivables">
           <div className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-sm">
             Total:{" "}
             <span className="font-bold text-rose-700">
-              {formatPKR(receivables.reduce((a, c) => a + c.outstanding, 0))}
+              {formatPKR(totalReceivables(data))}
             </span>
           </div>
           {receivables.length === 0 ? (
@@ -108,6 +180,7 @@ export default function AccountsPage() {
                   <tr className="border-b border-slate-100 text-xs text-slate-500">
                     <th className="pb-2 font-medium">Customer</th>
                     <th className="pb-2 font-medium">Outstanding</th>
+                    <th className="pb-2 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -115,6 +188,9 @@ export default function AccountsPage() {
                     <tr key={c.id} className="border-b border-slate-50">
                       <td className="py-2 text-slate-800">{c.name}</td>
                       <td className="py-2 font-medium text-rose-700">{formatPKR(c.outstanding)}</td>
+                      <td className="py-2 text-right">
+                        <Link href="/accounts/ledger" className="text-xs text-blue-600 hover:underline">View ledger</Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -127,7 +203,7 @@ export default function AccountsPage() {
           <div className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm">
             Total:{" "}
             <span className="font-bold text-amber-800">
-              {formatPKR(payables.reduce((a, s) => a + s.outstanding, 0))}
+              {formatPKR(totalPayables(data))}
             </span>
           </div>
           {payables.length === 0 ? (
@@ -139,6 +215,7 @@ export default function AccountsPage() {
                   <tr className="border-b border-slate-100 text-xs text-slate-500">
                     <th className="pb-2 font-medium">Supplier</th>
                     <th className="pb-2 font-medium">Outstanding</th>
+                    <th className="pb-2 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -146,6 +223,9 @@ export default function AccountsPage() {
                     <tr key={s.id} className="border-b border-slate-50">
                       <td className="py-2 text-slate-800">{s.name}</td>
                       <td className="py-2 font-medium text-amber-800">{formatPKR(s.outstanding)}</td>
+                      <td className="py-2 text-right">
+                        <Link href="/accounts/ledger" className="text-xs text-blue-600 hover:underline">View ledger</Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -212,19 +292,31 @@ export default function AccountsPage() {
             <option value="">Select account</option>
             {parties.map((party) => <option key={party.id} value={party.id}>{party.name}</option>)}
           </Select>
-          <Select label="Booking" required value={form.bookingId} onChange={(e) => setForm({ ...form, bookingId: e.target.value })}>
-            <option value="">Select booking</option>
-            {bookingOptions.map((bookingId) => <option key={bookingId} value={bookingId}>{bookingId}</option>)}
-          </Select>
+          <div className="sm:col-span-2">
+            <Select label="Booking" required value={form.bookingId} onChange={(e) => setForm({ ...form, bookingId: e.target.value })}>
+              <option value="">Select booking</option>
+              {bookingOptions.map((bookingId) => <option key={bookingId} value={bookingId}>{bookingId}</option>)}
+            </Select>
+            <p className="mt-1 text-[11px] text-slate-400">Partial / installment payments: choose Partial and enter the amount received/paid today — it is added to the party&apos;s statement automatically.</p>
+          </div>
           <Input label="Amount (PKR)" type="number" min={1} required value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
           <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "Pending" | "Paid" | "Partial" })}>
-            <option value="Paid">Paid</option><option value="Partial">Partial</option><option value="Pending">Pending</option>
+            <option value="Paid">Full Payment (Paid)</option><option value="Partial">Partial / Installment</option><option value="Pending">Pending</option>
           </Select>
           <Input label="Due Date" type="date" required value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
           <Input label="Note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
           <div className="flex justify-end sm:col-span-2"><Button type="submit" disabled={savingPayment}>{savingPayment ? "Saving..." : "Save Payment"}</Button></div>
         </form>
       </Modal>
+    </div>
+  );
+}
+
+function Summarized({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <p className="text-[11px] text-slate-500">{label}</p>
+      <p className={`mt-1 text-base font-bold ${tone}`}>{value}</p>
     </div>
   );
 }

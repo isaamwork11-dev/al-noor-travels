@@ -27,6 +27,8 @@ export default function NewHotelPage() {
     checkIn: todayISO(),
     checkOut: todayISO(),
     roomType: "Double",
+    referenceNumber: "",
+    contactPerson: "",
     supplierId: suppliers.find((s) => s.type === "Hotel")?.id || suppliers[0]?.id || "",
     costSAR: 0,
     exchangeRate: 73.9,
@@ -37,7 +39,7 @@ export default function NewHotelPage() {
 
   // Edit mode hydrates from the client store after the record becomes available.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, hotelName: existing.hotelName, city: existing.city, checkIn: existing.checkIn, checkOut: existing.checkOut, roomType: existing.roomType, supplierId: existing.supplierId, costSAR: existing.costSAR || 0, exchangeRate: existing.exchangeRate || 73.9, salePrice: existing.salePrice, status: existing.status }); } }, [existing]);
+  useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, hotelName: existing.hotelName, city: existing.city, checkIn: existing.checkIn, checkOut: existing.checkOut, roomType: existing.roomType, referenceNumber: existing.referenceNumber || "", contactPerson: existing.contactPerson || "", supplierId: existing.supplierId, costSAR: existing.costSAR || 0, exchangeRate: existing.exchangeRate || 73.9, salePrice: existing.salePrice, status: existing.status }); } }, [existing]);
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -112,6 +114,18 @@ export default function NewHotelPage() {
             label="Room Type"
             value={form.roomType}
             onChange={(e) => setForm({ ...form, roomType: e.target.value })}
+          />
+          <Input
+            label="Reference / Confirmation No"
+            value={form.referenceNumber}
+            onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
+            placeholder="e.g. HR-88212"
+          />
+          <Input
+            label="Hotel Contact Person (Name / No)"
+            value={form.contactPerson}
+            onChange={(e) => setForm({ ...form, contactPerson: e.target.value })}
+            placeholder="Front-desk contact"
           />
           <Select
             label="Supplier"

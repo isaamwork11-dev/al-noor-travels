@@ -1,5 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { COMPANY } from "./company";
+import type { PartyLedger } from "./accounting";
 
 type VoucherKind = "hotel" | "transport" | "umrah" | "visa" | "payment" | "air_ticket" | "booking";
 
@@ -10,6 +12,40 @@ interface VoucherPayload {
   lines: { label: string; value: string }[];
   amount?: string;
   note?: string;
+}
+
+/** Shared business header: logo, name, address, phone. */
+function drawCompanyHeader(doc: jsPDF, title: string) {
+  doc.setFillColor(15, 28, 63);
+  doc.rect(0, 0, 210, 42, "F");
+
+  const logo = typeof window === "undefined" ? null : new Image();
+  if (logo) {
+    logo.src = COMPANY.logo;
+  }
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text(COMPANY.name, 14, 17);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(COMPANY.address, 14, 24);
+  doc.text(`Tel: ${COMPANY.phone}  |  ${COMPANY.email}`, 14, 29);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text(title, 14, 38);
+
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  doc.text(`Date: ${new Date().toLocaleDateString("en-GB")}`, 140, 17);
+  if (logo?.complete) {
+    try {
+      doc.addImage(logo, "JPEG", 168, 6, 26, 26, undefined, "FAST");
+    } catch {
+      /* logo is optional */
+    }
+  }
 }
 
 export function generateVoucherPDF(payload: VoucherPayload) {
@@ -24,31 +60,17 @@ export function generateVoucherPDF(payload: VoucherPayload) {
     booking: "Travel Booking Invoice",
   };
 
-  const logo = typeof window === "undefined" ? null : new Image();
-  if (logo) {
-    logo.src = "/ssb-voucher-logo.jpg";
-  }
-
-  doc.setFillColor(15, 28, 63);
-  doc.rect(0, 0, 210, 36, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.text("SSB Travel & Tours", 14, 16);
-  doc.setFontSize(11);
-  doc.text(titles[payload.kind], 14, 26);
-  if (logo && logo.complete) {
-    doc.addImage(logo, "JPEG", 165, 6, 26, 26, undefined, "FAST");
-  }
-  doc.setFontSize(10);
-  doc.text(`Booking: ${payload.bookingId}`, 140, 16);
-  doc.text(new Date().toLocaleDateString("en-GB"), 140, 26);
+  drawCompanyHeader(doc, titles[payload.kind]);
 
   doc.setTextColor(30, 41, 59);
   doc.setFontSize(12);
-  doc.text(`Customer: ${payload.customerName}`, 14, 48);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Customer: ${payload.customerName}`, 14, 52);
+  doc.setFontSize(10);
+  doc.text(`Booking: ${payload.bookingId}`, 14, 58);
 
   autoTable(doc, {
-    startY: 56,
+    startY: 64,
     head: [["Field", "Details"]],
     body: payload.lines.map((l) => [l.label, l.value]),
     theme: "grid",
@@ -66,12 +88,84 @@ export function generateVoucherPDF(payload: VoucherPayload) {
   if (payload.note) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text(payload.note, 14, finalY + 22);
+    doc.text(payload.note, 14, finalY + (payload.amount ? 22 : 14));
   }
 
   doc.setFontSize(8);
   doc.setTextColor(100);
-  doc.text("This is a computer-generated voucher from SSB Travel & Tours Management System.", 14, 285);
+  doc.text(
+    `This is a computer-generated voucher from ${COMPANY.name} Management System.`,
+    14,
+    285
+  );
 
   doc.save(`${payload.kind}-${payload.bookingId}.pdf`);
+}
+
+/**
+ * Party statement (debit / credit + running balance) exported as a PDF that
+ * can be shared directly with the client or supplier.
+ */
+export function generateLedgerPDF(
+  ledger: PartyLedger,
+  from: string,
+  to: string,
+  money = (n: number) => `PKR ${n.toLocaleString("en-PK")}`
+) {
+  const doc = new jsPDF();
+  drawCompanyHeader(doc, "Account Statement");
+
+  doc.setTextColor(30, 41, 59);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  doc.text(`${ledger.partyType}: ${ledger.partyName}`, 14, 52);
+  doc.setFontSize(10);
+  doc.text(`Period: ${from || "Beginning"} — ${to || "Today"}`, 14, 58);
+
+  const body = ledger.rows.map((r, i) => [
+    r.date ? new Date(r.date).toLocaleDateString("en-GB") : "—",
+    r.ref,
+    r.description,
+    r.debit ? money(r.debit) : "—",
+    r.credit ? money(r.credit) : "—",
+    money(r.balance),
+    String(i + 1),
+  ]);
+
+  autoTable(doc, {
+    startY: 66,
+    head: [["#", "Date", "Ref", "Particulars", "Debit", "Credit", "Balance"]],
+    body,
+    theme: "grid",
+    headStyles: { fillColor: [15, 28, 63] },
+    styles: { fontSize: 8 },
+    columnStyles: {
+      0: { cellWidth: 8 },
+      1: { cellWidth: 22 },
+      4: { halign: "right" },
+      5: { halign: "right" },
+      6: { halign: "right" },
+    },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const finalY = (doc as any).lastAutoTable?.finalY || 150;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text(
+    `Closing Balance: ${money(ledger.closing)}`,
+    14,
+    finalY + 12
+  );
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(100);
+  doc.text(
+    `Generated by ${COMPANY.name} Management System.`,
+    14,
+    finalY + 20
+  );
+
+  const safe = ledger.partyName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+  doc.save(`statement-${safe}-${from || "all"}-${to || "today"}.pdf`);
 }

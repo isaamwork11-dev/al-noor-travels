@@ -1,15 +1,25 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, Eye, Pencil, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDateTime, formatPKR } from "@/lib/format";
+import { partyBalance } from "@/lib/accounting";
 import { Button, Card, EmptyState, Input, Modal, PageHeader } from "@/components/ui";
 
 export default function CustomersPage() {
   const user = useAppStore((s) => s.currentUser);
   const customers = useAppStore((s) => s.customers);
+  const suppliers = useAppStore((s) => s.suppliers);
+  const airTickets = useAppStore((s) => s.airTickets);
+  const visas = useAppStore((s) => s.visas);
+  const hotels = useAppStore((s) => s.hotels);
+  const transports = useAppStore((s) => s.transports);
+  const umrahPackages = useAppStore((s) => s.umrahPackages);
+  const tourPackages = useAppStore((s) => s.tourPackages);
+  const travelBookings = useAppStore((s) => s.travelBookings);
+  const payments = useAppStore((s) => s.payments);
   const addCustomer = useAppStore((s) => s.addCustomer);
   const updateCustomer = useAppStore((s) => s.updateCustomer);
   const deleteCustomer = useAppStore((s) => s.deleteCustomer);
@@ -25,6 +35,13 @@ export default function CustomersPage() {
     address: "",
     outstanding: 0,
   });
+
+  const data = useMemo(
+    () => ({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments }),
+    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments]
+  );
+
+  const balance = (id: string) => partyBalance("Customer", id, data);
 
   const canCreate =
     user?.role === "super_admin" || !!user?.permissions.createRecords;
@@ -96,7 +113,7 @@ export default function CustomersPage() {
                     <td className="py-2.5 text-slate-600">{c.mobile}</td>
                     <td className="py-2.5 text-slate-600">{c.cnic}</td>
                     <td className="py-2.5 text-slate-600">{c.passportNumber}</td>
-                    <td className="py-2.5 font-medium text-slate-800">{formatPKR(c.outstanding)}</td>
+                    <td className="py-2.5 font-medium text-slate-800">{formatPKR(balance(c.id))}</td>
                     <td className="py-2.5 text-slate-500">{formatDateTime(c.createdAt)}</td>
                     <td className="py-2.5 text-slate-500">{formatDateTime(c.updatedAt || c.createdAt)}</td>
                     <td className="py-2.5">

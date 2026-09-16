@@ -82,6 +82,8 @@ export interface Supplier {
   updatedAt?: string;
 }
 
+export type TripType = "Oneway" | "Return";
+
 export interface AirTicket {
   id: string;
   bookingId: string;
@@ -96,6 +98,9 @@ export interface AirTicket {
   sector: string;
   issueDate: string;
   travelDate: string;
+  /** Date of the return flight — only used when tripType === "Return". */
+  returnDate?: string;
+  tripType?: TripType;
   flightTime: string;
   supplierId: string;
   /** Cost in SAR (preferred). */
@@ -152,6 +157,10 @@ export interface HotelBooking {
   checkIn: string;
   checkOut: string;
   roomType: string;
+  /** Hotel confirmation / reference code shown on the voucher. */
+  referenceNumber?: string;
+  /** Contact at the hotel (check-in staff name + number). */
+  contactPerson?: string;
   supplierId: string;
   costPrice: number;
   salePrice: number;
@@ -177,6 +186,8 @@ export interface TransportBooking {
   time: string;
   vehicle: string;
   driver: string;
+  /** Driver / operator contact number printed on the voucher. */
+  contactPerson?: string;
   costPrice: number;
   salePrice: number;
   profit: number;
@@ -328,6 +339,9 @@ export interface BookingTicketLine {
   ticketNumber: string;
   sector: string;
   travelDate: string;
+  /** Date of the return flight — only used when tripType === "Return". */
+  returnDate?: string;
+  tripType?: TripType;
   supplierId: string;
   /** Cost entered in Saudi Riyals. */
   costSAR: number;

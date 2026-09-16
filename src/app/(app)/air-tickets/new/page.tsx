@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { calcProfit, formatPKR, todayISO } from "@/lib/format";
-import type { BookingStatus, Currency, PassengerDetail } from "@/lib/types";
+import type { BookingStatus, Currency, PassengerDetail, TripType } from "@/lib/types";
 import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 
 export default function NewAirTicketPage() {
@@ -33,6 +33,8 @@ export default function NewAirTicketPage() {
     sector: "",
     issueDate: todayISO(),
     travelDate: todayISO(),
+    returnDate: "",
+    tripType: "Oneway" as TripType,
     flightTime: "",
     supplierId: suppliers[0]?.id || "",
     costPrice: 0,
@@ -61,6 +63,8 @@ export default function NewAirTicketPage() {
       sector: existingTicket.sector,
       issueDate: existingTicket.issueDate,
       travelDate: existingTicket.travelDate,
+      returnDate: existingTicket.returnDate || "",
+      tripType: existingTicket.tripType || "Oneway",
       flightTime: existingTicket.flightTime,
       supplierId: existingTicket.supplierId,
       costPrice: existingTicket.costPrice,
@@ -100,6 +104,8 @@ export default function NewAirTicketPage() {
       sector: form.sector,
       issueDate: form.issueDate,
       travelDate: form.travelDate,
+      returnDate: form.tripType === "Return" ? form.returnDate : "",
+      tripType: form.tripType,
       flightTime: form.flightTime,
       supplierId: form.supplierId,
       costPrice: Number(form.costPrice),
@@ -190,6 +196,25 @@ export default function NewAirTicketPage() {
               value={form.travelDate}
               onChange={(e) => setForm({ ...form, travelDate: e.target.value })}
             />
+            <Select
+              label="Trip Type"
+              value={form.tripType}
+              onChange={(e) =>
+                setForm({ ...form, tripType: e.target.value as TripType })
+              }
+            >
+              <option value="Oneway">One Way</option>
+              <option value="Return">Return</option>
+            </Select>
+            {form.tripType === "Return" && (
+              <Input
+                label="Return Date"
+                type="date"
+                required
+                value={form.returnDate}
+                onChange={(e) => setForm({ ...form, returnDate: e.target.value })}
+              />
+            )}
             <Input
               label="Flight Time"
               value={form.flightTime}

@@ -27,6 +27,8 @@ function emptyTicket(exchangeRate: number): BookingTicketLine {
     ticketNumber: "",
     sector: "",
     travelDate: todayISO(),
+    returnDate: "",
+    tripType: "Oneway",
     supplierId: "",
     costSAR: 0,
     exchangeRate,
@@ -320,6 +322,24 @@ export default function NewBookingPage() {
                     })
                   }
                 />
+                <Input
+                  label="Reference / Confirmation No"
+                  value={svc.details.referenceNumber || ""}
+                  onChange={(e) =>
+                    updateService(si, {
+                      details: { ...svc.details, referenceNumber: e.target.value },
+                    })
+                  }
+                />
+                <Input
+                  label="Hotel Contact Person (Name / No)"
+                  value={svc.details.contactPerson || ""}
+                  onChange={(e) =>
+                    updateService(si, {
+                      details: { ...svc.details, contactPerson: e.target.value },
+                    })
+                  }
+                />
               </div>
             )}
 
@@ -369,6 +389,15 @@ export default function NewBookingPage() {
                   onChange={(e) =>
                     updateService(si, {
                       details: { ...svc.details, vehicle: e.target.value },
+                    })
+                  }
+                />
+                <Input
+                  label="Driver / Contact Person (Name / No)"
+                  value={svc.details.contactPerson || ""}
+                  onChange={(e) =>
+                    updateService(si, {
+                      details: { ...svc.details, contactPerson: e.target.value },
                     })
                   }
                 />
@@ -485,6 +514,26 @@ export default function NewBookingPage() {
                           updateTicket(si, ti, { travelDate: e.target.value })
                         }
                       />
+                      <Select
+                        label="Trip Type"
+                        value={tk.tripType || "Oneway"}
+                        onChange={(e) =>
+                          updateTicket(si, ti, { tripType: e.target.value as "Oneway" | "Return" })
+                        }
+                      >
+                        <option value="Oneway">One Way</option>
+                        <option value="Return">Return</option>
+                      </Select>
+                      {tk.tripType === "Return" && (
+                        <Input
+                          label="Return Date"
+                          type="date"
+                          value={tk.returnDate || ""}
+                          onChange={(e) =>
+                            updateTicket(si, ti, { returnDate: e.target.value })
+                          }
+                        />
+                      )}
                     </div>
                     <div className="grid gap-3 sm:grid-cols-3">
                       {showCost && <Input label="Cost Price (PKR)" type="number" min={0} value={tk.costPKR} onChange={(e) => updateTicket(si, ti, { costPKR: Number(e.target.value), costSAR: 0, exchangeRate: 0 })} />}

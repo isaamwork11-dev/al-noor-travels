@@ -30,6 +30,7 @@ export default function NewTransportPage() {
     time: "10:00",
     vehicle: "Hiace",
     driver: "",
+    contactPerson: "",
     costSAR: 0,
     exchangeRate: 73.9,
     salePrice: 0,
@@ -39,7 +40,7 @@ export default function NewTransportPage() {
 
   // Edit mode hydrates from the client store after the record becomes available.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, type: existing.type, pickup: existing.pickup, dropoff: existing.dropoff, date: existing.date, time: existing.time, vehicle: existing.vehicle, driver: existing.driver, costSAR: existing.costSAR || 0, exchangeRate: existing.exchangeRate || 73.9, salePrice: existing.salePrice, status: existing.status }); } }, [existing]);
+  useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, type: existing.type, pickup: existing.pickup, dropoff: existing.dropoff, date: existing.date, time: existing.time, vehicle: existing.vehicle, driver: existing.driver, contactPerson: existing.contactPerson || "", costSAR: existing.costSAR || 0, exchangeRate: existing.exchangeRate || 73.9, salePrice: existing.salePrice, status: existing.status }); } }, [existing]);
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -128,6 +129,12 @@ export default function NewTransportPage() {
             label="Driver"
             value={form.driver}
             onChange={(e) => setForm({ ...form, driver: e.target.value })}
+          />
+          <Input
+            label="Driver / Contact Number"
+            value={form.contactPerson}
+            onChange={(e) => setForm({ ...form, contactPerson: e.target.value })}
+            placeholder="e.g. 0300-1234567"
           />
           {showCost ? (
             <div className="sm:col-span-2 lg:col-span-3">
