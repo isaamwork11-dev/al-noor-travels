@@ -33,12 +33,22 @@ export function nextBookingId(existing: string[]): string {
 }
 
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** Full ISO timestamp for createdAt / updatedAt tracking. */
+/** Full timestamp for createdAt / updatedAt tracking — LOCAL time with offset
+ *  so displayed dates never shift because of UTC conversion. */
 export function nowISO(): string {
-  return new Date().toISOString();
+  const d = new Date();
+  const offset = -d.getTimezoneOffset();
+  const sign = offset >= 0 ? "+" : "-";
+  const pad = (n: number) => String(Math.abs(n)).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}` +
+    `${sign}${pad(Math.floor(offset / 60))}:${pad(offset % 60)}`
+  );
 }
 
 /** Convert SAR → PKR using the rate the user entered for that transaction. */
@@ -48,11 +58,38 @@ export function sarToPkr(costSAR: number, exchangeRate: number): number {
   return Math.round(sar * rate);
 }
 
+/** Match the calendar date part of a stored value without JS Date timezone
+ *  shifting (e.g. store "2026-09-10" → "10/09/2026", never "09/09/2026"). */
+function datePartToDMY(date: string): string | null {
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
 export function formatDate(date: string): string {
   if (!date) return "—";
+  const dmy = datePartToDMY(date);
+  if (dmy) return dmy;
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return date;
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+/** Night count between two dates (check-out minus check-in). Returns 0 when
+ *  either date is missing or check-out is not after check-in. */
+export function hotelNights(checkIn: string, checkOut: string): number {
+  const from = datePartToDMY(checkIn);
+  const to = datePartToDMY(checkOut);
+  if (!from || !to) return 0;
+  const start = new Date(`${checkIn.slice(0, 10)}T00:00:00`);
+  const end = new Date(`${checkOut.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  const nights = Math.round((end.getTime() - start.getTime()) / 86_400_000);
+  return Math.max(0, nights);
 }
 
 /** Shows date + time when a full ISO timestamp is available. */

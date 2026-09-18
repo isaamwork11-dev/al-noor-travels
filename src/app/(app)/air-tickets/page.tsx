@@ -11,6 +11,7 @@ export default function AirTicketsPage() {
   const airTickets = useAppStore((s) => s.airTickets);
   const customers = useAppStore((s) => s.customers);
   const suppliers = useAppStore((s) => s.suppliers);
+  const refunds = useAppStore((s) => s.refunds);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
   const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
@@ -20,6 +21,8 @@ export default function AirTicketsPage() {
 
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
   const supplierName = (id: string) => suppliers.find((s) => s.id === id)?.name || "—";
+
+  const refundOf = (ticketId: string) => refunds.find((r) => r.referenceId === ticketId);
 
   return (
     <div>
@@ -40,11 +43,12 @@ export default function AirTicketsPage() {
           <EmptyState message="No air tickets yet." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[1000px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-500">
                   <th className="pb-2 font-medium">Booking</th>
-                  <th className="pb-2 font-medium">Passengers / PAX</th>
+                  <th className="pb-2 font-medium">Customer</th>
+                  <th className="pb-2 font-medium">Passenger / PAX</th>
                   <th className="pb-2 font-medium">Airline</th>
                   <th className="pb-2 font-medium">PNR</th>
                   <th className="pb-2 font-medium">Sector</th>
@@ -53,6 +57,7 @@ export default function AirTicketsPage() {
                   {showCost && <th className="pb-2 font-medium">Cost</th>}
                   <th className="pb-2 font-medium">Sale</th>
                   {showProfit && <th className="pb-2 font-medium">Profit</th>}
+                  <th className="pb-2 font-medium">Refund</th>
                   <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Created</th>
                   <th className="pb-2 font-medium">Updated</th>
@@ -60,12 +65,22 @@ export default function AirTicketsPage() {
                 </tr>
               </thead>
               <tbody>
-                {airTickets.map((t) => (
+                {airTickets.map((t) => {
+                  const refund = refundOf(t.id);
+                  return (
                   <tr key={t.id} className="border-b border-slate-50 last:border-0">
-                    <td className="py-2.5 font-medium text-blue-700">{t.bookingId}</td>
+                    <td className="py-2.5">
+                      <Link href={`/customers/${t.customerId}`} className="font-medium text-blue-700 hover:underline">
+                        {t.bookingId}
+                      </Link>
+                    </td>
+                    <td className="py-2.5">
+                      <Link href={`/customers/${t.customerId}`} className="text-slate-800 hover:text-blue-600 hover:underline">
+                        {customerName(t.customerId)}
+                      </Link>
+                    </td>
                     <td className="py-2.5 text-slate-800">
                       <div>{t.passengerNames?.length ? t.passengerNames.join(", ") : t.passengerName} ({t.pax || 1})</div>
-                      <div className="text-xs text-slate-400">{customerName(t.customerId)}</div>
                     </td>
                     <td className="py-2.5 text-slate-600">{t.airline}</td>
                     <td className="py-2.5 text-slate-600">{t.pnr}</td>
@@ -82,6 +97,21 @@ export default function AirTicketsPage() {
                       <td className="py-2.5 font-medium text-emerald-700">{formatPKR(t.profit)}</td>
                     )}
                     <td className="py-2.5">
+                      {refund ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          Refunded · {formatPKR(refund.refundAmount)}
+                        </span>
+                      ) : t.refundable ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                          Refundable
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                          Non-refundable
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2.5">
                       <StatusBadge status={t.status} />
                     </td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(t.createdAt)}</td>
@@ -91,7 +121,8 @@ export default function AirTicketsPage() {
                       {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this air ticket permanently?") && deleteTicket(t.id)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

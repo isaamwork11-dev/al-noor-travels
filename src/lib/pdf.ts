@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { COMPANY } from "./company";
+import { formatDate } from "./format";
 import type { PartyLedger } from "./accounting";
 
 type VoucherKind = "hotel" | "transport" | "umrah" | "visa" | "payment" | "air_ticket" | "booking";
@@ -120,16 +121,17 @@ export function generateLedgerPDF(
   doc.setFontSize(12);
   doc.text(`${ledger.partyType}: ${ledger.partyName}`, 14, 52);
   doc.setFontSize(10);
-  doc.text(`Period: ${from || "Beginning"} — ${to || "Today"}`, 14, 58);
+  const periodLine = `Period: ${from ? formatDate(from) : "Beginning"} — ${to ? formatDate(to) : "Today"}`;
+  doc.text(periodLine, 14, 58);
 
   const body = ledger.rows.map((r, i) => [
-    r.date ? new Date(r.date).toLocaleDateString("en-GB") : "—",
+    String(i + 1),
+    formatDate(r.date),
     r.ref,
     r.description,
     r.debit ? money(r.debit) : "—",
     r.credit ? money(r.credit) : "—",
     money(r.balance),
-    String(i + 1),
   ]);
 
   autoTable(doc, {

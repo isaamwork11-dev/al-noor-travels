@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatPKR, todayISO } from "@/lib/format";
 import { monthlySummary, partyBalance, totalPayables, totalReceivables } from "@/lib/accounting";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
+import type { Payment, PaymentMethod } from "@/lib/types";
 
 export default function AccountsPage() {
   const user = useAppStore((s) => s.currentUser);
+  const users = useAppStore((s) => s.users);
   const customers = useAppStore((s) => s.customers);
   const suppliers = useAppStore((s) => s.suppliers);
   const payments = useAppStore((s) => s.payments);
+  const refunds = useAppStore((s) => s.refunds);
   const markPaymentPaid = useAppStore((s) => s.markPaymentPaid);
   const addPayment = useAppStore((s) => s.addPayment);
+  const updatePayment = useAppStore((s) => s.updatePayment);
   const deletePayment = useAppStore((s) => s.deletePayment);
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
   const airTickets = useAppStore((s) => s.airTickets);
@@ -24,9 +28,22 @@ export default function AccountsPage() {
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const tourPackages = useAppStore((s) => s.tourPackages);
   const travelBookings = useAppStore((s) => s.travelBookings);
+
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
-  const [form, setForm] = useState({ type: "Customer" as "Customer" | "Supplier", partyId: "", bookingId: "", amount: 0, status: "Paid" as "Pending" | "Paid" | "Partial", dueDate: todayISO(), note: "" });
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [form, setForm] = useState({
+    type: "Customer" as "Customer" | "Supplier",
+    partyId: "",
+    bookingId: "",
+    amount: 0,
+    status: "Paid" as "Pending" | "Paid" | "Partial",
+    method: "" as PaymentMethod | "",
+    dueDate: todayISO(),
+    paidDate: todayISO(),
+    note: "",
+  });
+  const [paymentFilter, setPaymentFilter] = useState<"Pending" | "All">("Pending");
 
   const monthStart = () => {
     const now = new Date();
@@ -50,11 +67,53 @@ export default function AccountsPage() {
       tourPackages,
       travelBookings,
       payments,
+      refunds,
     }),
-    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments]
+    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments, refunds]
   );
 
   const summary = useMemo(() => monthlySummary(from, to, data), [from, to, data]);
+
+  const visiblePayments = useMemo(
+    () =>
+      [...payments]
+        .filter((p) => (paymentFilter === "All" ? true : p.status !== "Paid"))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [payments, paymentFilter]
+  );
+
+  interface BookingOption {
+    bookingId: string;
+    partyId: string;
+    label: string;
+  }
+  const bookingRecords = useMemo<BookingOption[]>(
+    () => {
+      const rows: BookingOption[] = [];
+      const push = (b: BookingOption) => rows.push(b);
+      for (const t of airTickets)
+        push({ bookingId: t.bookingId, partyId: t.customerId, label: `Ticket · ${formatDate(t.travelDate)} · ${formatPKR(t.totalAmount || t.salePrice)}` });
+      for (const v of visas)
+        push({ bookingId: v.bookingId, partyId: v.customerId, label: `Visa · ${formatDate(v.submissionDate)} · ${formatPKR(v.salePrice)}` });
+      for (const h of hotels)
+        push({ bookingId: h.bookingId, partyId: h.customerId, label: `Hotel · ${formatDate(h.checkIn)} · ${formatPKR(h.salePrice)}` });
+      for (const t of transports)
+        push({ bookingId: t.bookingId, partyId: t.customerId, label: `Transport · ${formatDate(t.date)} · ${formatPKR(t.salePrice)}` });
+      for (const u of umrahPackages)
+        push({ bookingId: u.bookingId, partyId: u.customerId, label: `Umrah · ${formatDate(u.travelDate)} · ${formatPKR(u.salePrice)}` });
+      for (const t of tourPackages)
+        push({ bookingId: t.bookingId, partyId: t.customerId, label: `Tour · ${formatDate(t.travelDate)} · ${formatPKR(t.salePrice)}` });
+      for (const t of travelBookings)
+        push({ bookingId: t.bookingId, partyId: t.customerId, label: `Booking · ${formatDate(t.travelDate)} · ${formatPKR(t.totalSale)}` });
+      const seen = new Set<string>();
+      return rows.filter((r) => {
+        if (seen.has(r.bookingId)) return false;
+        seen.add(r.bookingId);
+        return true;
+      });
+    },
+    [airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings]
+  );
 
   if (!canView) {
     return (
@@ -76,39 +135,72 @@ export default function AccountsPage() {
     .filter((s) => s.outstanding > 0)
     .sort((a, b) => b.outstanding - a.outstanding);
 
-  const pending = payments.filter((p) => p.status !== "Paid");
   const parties = form.type === "Customer" ? customers : suppliers;
-  const bookingOptions = Array.from(new Set([
-    ...airTickets.map((x) => x.bookingId),
-    ...visas.map((x) => x.bookingId),
-    ...hotels.map((x) => x.bookingId),
-    ...transports.map((x) => x.bookingId),
-    ...umrahPackages.map((x) => x.bookingId),
-    ...travelBookings.map((x) => x.bookingId),
-  ])).filter(Boolean);
+
+  const bookingOptions = bookingRecords.filter(
+    (b) => b.bookingId === form.bookingId || (form.partyId && b.partyId === form.partyId)
+  );
+
+  const openNewPayment = () => {
+    setEditingPayment(null);
+    setForm({
+      type: "Customer",
+      partyId: "",
+      bookingId: "",
+      amount: 0,
+      status: "Paid",
+      method: customers.length ? "Cash" : "Other",
+      dueDate: todayISO(),
+      paidDate: todayISO(),
+      note: "",
+    });
+    setPaymentOpen(true);
+  };
+
+  const openEditPayment = (p: Payment) => {
+    setEditingPayment(p);
+    setForm({
+      type: p.type,
+      partyId: p.partyId,
+      bookingId: p.bookingId || "",
+      amount: p.amountPKR,
+      status: p.status,
+      method: p.method || "",
+      dueDate: p.dueDate,
+      paidDate: p.paidDate || todayISO(),
+      note: p.note || "",
+    });
+    setPaymentOpen(true);
+  };
 
   const submitPayment = async (event: FormEvent) => {
     event.preventDefault();
     if (savingPayment) return;
     const party = parties.find((item) => item.id === form.partyId);
-    if (!party || !form.bookingId || form.amount <= 0) return;
+    if (!party || form.amount <= 0) return;
     setSavingPayment(true);
-    await addPayment({
+    const payload = {
       type: form.type,
+      ...(form.bookingId ? { bookingId: form.bookingId } : { bookingId: "" }),
       partyId: party.id,
       partyName: party.name,
-      bookingId: form.bookingId,
       amount: Number(form.amount),
-      currency: "PKR",
+      currency: "PKR" as const,
       amountPKR: Number(form.amount),
       dueDate: form.dueDate,
       status: form.status,
+      method: form.method || "Other",
       note: form.note,
-      ...(form.status === "Paid" ? { paidDate: todayISO() } : {}),
-    });
+      ...(form.status === "Paid" ? { paidDate: form.paidDate || todayISO() } : {}),
+    };
+    if (editingPayment) {
+      await updatePayment(editingPayment.id, payload);
+    } else {
+      await addPayment(payload);
+    }
     setPaymentOpen(false);
     setSavingPayment(false);
-    setForm({ type: "Customer", partyId: "", bookingId: "", amount: 0, status: "Paid", dueDate: todayISO(), note: "" });
+    setEditingPayment(null);
   };
 
   return (
@@ -235,67 +327,141 @@ export default function AccountsPage() {
         </Card>
       </div>
 
-      <Card title="Payments" action={<Button onClick={() => setPaymentOpen(true)}>Payment Entry</Button>}>
-        {pending.length === 0 ? (
-          <EmptyState message="No pending payments." />
+      <Card
+        title="Payments"
+        action={<Button onClick={openNewPayment}>Payment Entry</Button>}
+      >
+        <div className="mb-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPaymentFilter("Pending")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              paymentFilter === "Pending" ? "bg-amber-500 text-white" : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            Pending / Partial ({payments.filter((p) => p.status !== "Paid").length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setPaymentFilter("All")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              paymentFilter === "All" ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            All Payments ({payments.length})
+          </button>
+        </div>
+
+        {visiblePayments.length === 0 ? (
+          <EmptyState message="No payments to show." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[1000px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-500">
                   <th className="pb-2 font-medium">Type</th>
                   <th className="pb-2 font-medium">Party</th>
                   <th className="pb-2 font-medium">Amount</th>
+                  <th className="pb-2 font-medium">Method</th>
+                  <th className="pb-2 font-medium">Booking</th>
                   <th className="pb-2 font-medium">Due</th>
+                  <th className="pb-2 font-medium">Paid</th>
                   <th className="pb-2 font-medium">Status</th>
-                  <th className="pb-2 font-medium">Action</th>
-                  <th className="pb-2 font-medium">Delete</th>
+                  <th className="pb-2 font-medium">Entry By</th>
+                  <th className="pb-2 font-medium">Actions</th>
+                  <th className="pb-2 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
-                {pending.map((p) => (
-                  <tr key={p.id} className="border-b border-slate-50">
-                    <td className="py-2 text-slate-600">{p.type}</td>
-                    <td className="py-2 text-slate-800">{p.partyName}</td>
-                    <td className="py-2 font-medium">{formatPKR(p.amountPKR)}</td>
-                    <td className="py-2 text-slate-600">{formatDate(p.dueDate)}</td>
-                    <td className="py-2">
-                      <StatusBadge status={p.status} />
-                    </td>
-                    <td className="py-2">
-                      <Button
-                        variant="secondary"
-                        className="!px-2 !py-1 text-xs"
-                        onClick={() => markPaymentPaid(p.id)}
-                      >
-                        Mark Paid
-                      </Button>
-                    </td>
-                    <td className="py-2">
-                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this payment permanently?") && deletePayment(p.id)}><Trash2 size={14} className="inline" /> Delete</button>}
-                    </td>
-                  </tr>
-                ))}
+                {visiblePayments.map((p) => {
+                  const entryBy = users.find((u) => u.id === p.createdBy)?.name || p.createdBy || "—";
+                  const partyLabel =
+                    p.type === "Customer" && customers.find((c) => c.id === p.partyId) ? (
+                      <Link href={`/customers/${p.partyId}`} className="text-blue-600 hover:underline">
+                        {p.partyName}
+                      </Link>
+                    ) : (
+                      p.partyName
+                    );
+                  return (
+                    <tr key={p.id} className="border-b border-slate-50">
+                      <td className="py-2 text-slate-600">{p.type}</td>
+                      <td className="py-2 text-slate-800">{partyLabel}</td>
+                      <td className="py-2 font-medium">{formatPKR(p.amountPKR)}</td>
+                      <td className="py-2 text-slate-600">{p.method || "—"}</td>
+                      <td className="py-2 text-slate-600">{p.bookingId || "—"}</td>
+                      <td className="py-2 text-slate-600">{formatDate(p.dueDate)}</td>
+                      <td className="py-2 text-slate-600">{p.paidDate ? formatDate(p.paidDate) : "—"}</td>
+                      <td className="py-2">
+                        <StatusBadge status={p.status} />
+                      </td>
+                      <td className="py-2 text-xs text-slate-500">{entryBy}</td>
+                      <td className="py-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 hover:underline"
+                            onClick={() => openEditPayment(p)}
+                          >
+                            <Pencil size={12} /> Edit
+                          </button>
+                          {p.status !== "Paid" && (
+                            <Button
+                              variant="secondary"
+                              className="!px-2 !py-1 text-xs"
+                              onClick={() => markPaymentPaid(p.id)}
+                            >
+                              Mark Paid
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2">
+                        {canDelete && (
+                          <button
+                            type="button"
+                            className="text-xs text-rose-600 hover:underline"
+                            onClick={() => confirm("Delete this payment permanently?") && deletePayment(p.id)}
+                          >
+                            <Trash2 size={14} className="inline" /> Delete
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </Card>
 
-      <Modal open={paymentOpen} onClose={() => setPaymentOpen(false)} title="Payment Entry">
+      <Modal open={paymentOpen} onClose={() => setPaymentOpen(false)} title={editingPayment ? "Edit Payment" : "Payment Entry"}>
         <form onSubmit={submitPayment} className="grid gap-3 sm:grid-cols-2">
-          <Select label="Account Type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as "Customer" | "Supplier", partyId: "" })}>
+          <Select
+            label="Account Type"
+            value={form.type}
+            onChange={(e) => setForm({ ...form, type: e.target.value as "Customer" | "Supplier", partyId: "", bookingId: "" })}
+          >
             <option value="Customer">Client / Customer (Received)</option>
             <option value="Supplier">Vendor / Supplier (Paid)</option>
           </Select>
-          <Select label={form.type === "Customer" ? "Client" : "Vendor"} required value={form.partyId} onChange={(e) => setForm({ ...form, partyId: e.target.value })}>
+          <Select label={form.type === "Customer" ? "Client" : "Vendor"} required value={form.partyId} onChange={(e) => setForm({ ...form, partyId: e.target.value, bookingId: "" })}>
             <option value="">Select account</option>
             {parties.map((party) => <option key={party.id} value={party.id}>{party.name}</option>)}
           </Select>
           <div className="sm:col-span-2">
-            <Select label="Booking" required value={form.bookingId} onChange={(e) => setForm({ ...form, bookingId: e.target.value })}>
-              <option value="">Select booking</option>
-              {bookingOptions.map((bookingId) => <option key={bookingId} value={bookingId}>{bookingId}</option>)}
+            <Select label="Booking (optional — leave blank to record against the account alone)" value={form.bookingId} onChange={(e) => setForm({ ...form, bookingId: e.target.value })}>
+              <option value="">No specific booking (account only)</option>
+              {form.partyId && bookingOptions.length > 0 ? (
+                bookingOptions.map((b) => (
+                  <option key={b.bookingId} value={b.bookingId}>
+                    {b.bookingId} — {b.label}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>Select a client/vendor above to see its bookings</option>
+              )}
             </Select>
             <p className="mt-1 text-[11px] text-slate-400">Partial / installment payments: choose Partial and enter the amount received/paid today — it is added to the party&apos;s statement automatically.</p>
           </div>
@@ -303,9 +469,20 @@ export default function AccountsPage() {
           <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "Pending" | "Paid" | "Partial" })}>
             <option value="Paid">Full Payment (Paid)</option><option value="Partial">Partial / Installment</option><option value="Pending">Pending</option>
           </Select>
+          <Select label="Payment Method" value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value as PaymentMethod | "" })}>
+            <option value="Cash">Cash</option>
+            <option value="Bank">Bank Transfer</option>
+            <option value="Card">Card</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Other">Other</option>
+          </Select>
           <Input label="Due Date" type="date" required value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+          <Input label="Paid Date" type="date" value={form.paidDate} onChange={(e) => setForm({ ...form, paidDate: e.target.value })} />
           <Input label="Note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-          <div className="flex justify-end sm:col-span-2"><Button type="submit" disabled={savingPayment}>{savingPayment ? "Saving..." : "Save Payment"}</Button></div>
+          <div className="flex justify-end gap-2 sm:col-span-2">
+            <Button type="button" variant="secondary" onClick={() => setPaymentOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={savingPayment}>{savingPayment ? "Saving..." : editingPayment ? "Save Changes" : "Save Payment"}</Button>
+          </div>
         </form>
       </Modal>
     </div>

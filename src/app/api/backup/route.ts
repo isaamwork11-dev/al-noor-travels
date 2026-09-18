@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       )} records)`
     );
 
-    const filename = `al-noor-backup-${snapshot.createdAt.slice(0, 10)}.json`;
+    const filename = `ssb-backup-${snapshot.createdAt.slice(0, 10)}.json`;
     return new Response(JSON.stringify({ ...snapshot, backupId: saved.id }, null, 2), {
       status: 200,
       headers: {

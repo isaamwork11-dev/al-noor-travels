@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Al Noor Travels",
+  title: "S.S.B Travel & Tours",
   description: "Travel Agency Management Portal",
 };
 

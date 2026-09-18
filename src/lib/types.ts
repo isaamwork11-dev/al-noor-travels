@@ -114,6 +114,10 @@ export interface AirTicket {
   profit: number;
   status: BookingStatus;
   currency: Currency;
+  /** Whether this ticket can be refunded. Refunds are a separate adjustment. */
+  refundable?: boolean;
+  /** Total amount refunded against this ticket so far. */
+  refundedAmount?: number;
   createdBy: string;
   createdAt: string;
   updatedAt?: string;
@@ -259,20 +263,26 @@ export interface InsuranceRecord {
   createdAt: string;
 }
 
+export type PaymentMethod = "Cash" | "Bank" | "Card" | "Cheque" | "Other";
+
 export interface Payment {
   id: string;
   type: "Customer" | "Supplier";
   partyId: string;
   partyName: string;
-  bookingId: string;
+  /** Optional — a payment can be recorded against the account alone. */
+  bookingId?: string;
   amount: number;
   currency: Currency;
   amountPKR: number;
   dueDate: string;
   paidDate?: string;
   status: "Pending" | "Paid" | "Partial";
+  method?: PaymentMethod | "";
   note?: string;
+  createdBy?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CashEntry {
@@ -294,6 +304,7 @@ export interface Refund {
   serviceType: ServiceType;
   referenceId: string;
   bookingId: string;
+  customerId?: string;
   customerName: string;
   refundType: "Full" | "Partial" | "Used + Refunded";
   originalAmount: number;

@@ -25,6 +25,7 @@ type DashboardRow = {
   customer: string;
   service: string;
   date: string;
+  returnDate?: string;
   status: string;
   icon: "plane" | "visa" | "hotel" | "bus" | "umrah";
 };
@@ -43,13 +44,14 @@ function BookingTable({ rows }: { rows: DashboardRow[] }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[520px] text-left text-sm">
+      <table className="w-full min-w-[560px] text-left text-sm">
         <thead>
           <tr className="border-b border-slate-100 text-xs text-slate-500">
             <th className="pb-2 font-medium">Booking ID</th>
             <th className="pb-2 font-medium">Customer</th>
             <th className="pb-2 font-medium">Service</th>
-            <th className="pb-2 font-medium">Date</th>
+            <th className="pb-2 font-medium">Travel / Check-in</th>
+            <th className="pb-2 font-medium">Return / Check-out</th>
             <th className="pb-2 font-medium">Status</th>
           </tr>
         </thead>
@@ -64,7 +66,8 @@ function BookingTable({ rows }: { rows: DashboardRow[] }) {
               </td>
               <td className="py-2.5 text-slate-600">{row.customer}</td>
               <td className="py-2.5 text-slate-600">{row.service}</td>
-              <td className="py-2.5 text-slate-600">{row.date}</td>
+              <td className="py-2.5 text-slate-600">{formatDate(row.date)}</td>
+              <td className="py-2.5 text-slate-600">{row.returnDate ? formatDate(row.returnDate) : "—"}</td>
               <td className="py-2.5">
                 <StatusBadge status={row.status} />
               </td>
@@ -90,8 +93,9 @@ export default function DashboardPage() {
   const transports = useAppStore((s) => s.transports);
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const tourPackages = useAppStore((s) => s.tourPackages);
-  const travelBookings = useAppStore((s) => s.travelBookings);
+const travelBookings = useAppStore((s) => s.travelBookings);
   const payments = useAppStore((s) => s.payments);
+  const refunds = useAppStore((s) => s.refunds);
 
   const canShow = user?.role === "super_admin";
   const [showFinancials, setShowFinancials] = useState(false);
@@ -117,17 +121,18 @@ export default function DashboardPage() {
 
   const totalProfit = totalSales - totalCost;
 
-  const receivable = totalReceivables({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments });
-  const payable = totalPayables({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments });
+const receivable = totalReceivables({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments, refunds });
+  const payable = totalPayables({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments, refunds });
 
   const getCustomerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
-  const allBookings: DashboardRow[] = [
+const allBookings: DashboardRow[] = [
     ...airTickets.map((t) => ({
       bookingId: t.bookingId,
-      customer: t.passengerName,
-      service: `Air Ticket (${t.sector})${t.tripType === "Return" ? " — Return" : ""}`,
+      customer: getCustomerName(t.customerId),
+      service: `Air Ticket (${t.sector}) — ${t.passengerName}${t.tripType === "Return" ? " · Return" : ""}`,
       date: t.travelDate,
+      returnDate: t.tripType === "Return" ? t.returnDate : "",
       status: t.status,
       icon: "plane" as const,
     })),
@@ -144,6 +149,7 @@ export default function DashboardPage() {
       customer: getCustomerName(h.customerId),
       service: `Hotel — ${h.hotelName}`,
       date: h.checkIn,
+      returnDate: h.checkOut,
       status: h.status,
       icon: "hotel" as const,
     })),
@@ -160,6 +166,7 @@ export default function DashboardPage() {
       customer: getCustomerName(u.customerId),
       service: u.packageName,
       date: u.travelDate,
+      returnDate: u.returnDate,
       status: u.status,
       icon: "umrah" as const,
     })),
@@ -176,6 +183,12 @@ export default function DashboardPage() {
               : service.kind === "ticket"
                 ? service.tickets?.map((ticket) => ticket.travelDate).filter(Boolean).sort()[0] || b.travelDate
                 : b.travelDate,
+        returnDate:
+          service.kind === "hotel"
+            ? service.details.checkOut || b.returnDate
+            : service.kind === "ticket"
+              ? service.tickets?.map((ticket) => ticket.returnDate).find(Boolean) || b.returnDate
+              : b.returnDate,
         status: b.status,
         icon: service.kind === "hotel" ? "hotel" as const : service.kind === "transport" ? "bus" as const : service.kind === "ticket" ? "plane" as const : "visa" as const,
       }))

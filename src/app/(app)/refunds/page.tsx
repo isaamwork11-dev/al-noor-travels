@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatPKR } from "@/lib/format";
@@ -32,6 +33,8 @@ export default function RefundsPage() {
   const selected = airTickets.find((t) => t.id === ticketId);
   const customerName =
     customers.find((c) => c.id === selected?.customerId)?.name || selected?.passengerName || "";
+  const alreadyRefunded = refunds.some((r) => r.referenceId === ticketId);
+  const canRefund = !!selected && selected.refundable === true && !alreadyRefunded;
 
   const refundAmount = selected
     ? Math.max(0, selected.salePrice - Number(form.airlineCharges) - Number(form.serviceCharges))
@@ -94,7 +97,15 @@ export default function RefundsPage() {
                 {refunds.map((r) => (
                   <tr key={r.id} className="border-b border-slate-50 last:border-0">
                     <td className="py-2.5 font-medium text-blue-700">{r.bookingId}</td>
-                    <td className="py-2.5 text-slate-800">{r.customerName}</td>
+                    <td className="py-2.5">
+                      {r.customerId && customers.find((c) => c.id === r.customerId) ? (
+                        <Link href={`/customers/${r.customerId}`} className="text-slate-800 hover:text-blue-600 hover:underline">
+                          {r.customerName}
+                        </Link>
+                      ) : (
+                        r.customerName
+                      )}
+                    </td>
                     <td className="py-2.5 text-slate-600">{r.refundType}</td>
                     <td className="py-2.5">{formatPKR(r.originalAmount)}</td>
                     <td className="py-2.5 text-slate-600">
@@ -124,12 +135,23 @@ export default function RefundsPage() {
             value={ticketId}
             onChange={(e) => setTicketId(e.target.value)}
           >
-            {airTickets.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.bookingId} — {t.passengerName} ({formatPKR(t.salePrice)})
-              </option>
-            ))}
+            {airTickets.map((t) => {
+              const refunded = refunds.some((r) => r.referenceId === t.id);
+              const suffix = refunded ? " [already refunded]" : t.refundable === true ? "" : " [not refundable]";
+              return (
+                <option key={t.id} value={t.id}>
+                  {t.bookingId} — {t.passengerName} ({formatPKR(t.salePrice)}){suffix}
+                </option>
+              );
+            })}
           </Select>
+          {selected && !canRefund && (
+            <p className="col-span-2 rounded-lg bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+              {alreadyRefunded
+                ? "This ticket has already been refunded — a ticket can only be refunded once."
+                : "This ticket is marked as Non-refundable. A refund can only be created for a refundable ticket."}
+            </p>
+          )}
           <Select
             label="Refund Type"
             value={form.refundType}
@@ -170,7 +192,7 @@ export default function RefundsPage() {
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!selected || saving}>
+            <Button type="submit" disabled={!canRefund || saving}>
               {saving ? "Saving..." : "Save Refund"}
             </Button>
           </div>

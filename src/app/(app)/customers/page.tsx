@@ -20,6 +20,7 @@ export default function CustomersPage() {
   const tourPackages = useAppStore((s) => s.tourPackages);
   const travelBookings = useAppStore((s) => s.travelBookings);
   const payments = useAppStore((s) => s.payments);
+  const refunds = useAppStore((s) => s.refunds);
   const addCustomer = useAppStore((s) => s.addCustomer);
   const updateCustomer = useAppStore((s) => s.updateCustomer);
   const deleteCustomer = useAppStore((s) => s.deleteCustomer);
@@ -37,8 +38,8 @@ export default function CustomersPage() {
   });
 
   const data = useMemo(
-    () => ({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments }),
-    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments]
+    () => ({ customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments, refunds }),
+    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments, refunds]
   );
 
   const balance = (id: string) => partyBalance("Customer", id, data);

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FileDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
+import { formatDate, formatDateTime, formatPKR, hotelNights } from "@/lib/format";
 import { generateVoucherPDF } from "@/lib/pdf";
 import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
@@ -20,6 +20,8 @@ export default function HotelsPage() {
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   const download = (h: (typeof hotels)[0]) => {
+    const nights = hotelNights(h.checkIn, h.checkOut);
+    const perNight = nights > 0 ? Math.round(h.salePrice / nights) : h.salePrice;
     generateVoucherPDF({
       kind: "hotel",
       bookingId: h.bookingId,
@@ -30,6 +32,8 @@ export default function HotelsPage() {
         { label: "Room", value: h.roomType },
         { label: "Check-in", value: formatDate(h.checkIn) },
         { label: "Check-out", value: formatDate(h.checkOut) },
+        { label: "Nights", value: String(nights) },
+        { label: "Per Night", value: formatPKR(perNight) },
         { label: "Status", value: h.status },
       ],
       amount: formatPKR(h.salePrice),

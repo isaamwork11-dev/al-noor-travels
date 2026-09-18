@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FileDown } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR } from "@/lib/format";
+import { formatDate, formatPKR, hotelNights } from "@/lib/format";
 import { generateVoucherPDF } from "@/lib/pdf";
 import { Button, Card, EmptyState, PageHeader, Select } from "@/components/ui";
 
@@ -26,6 +26,8 @@ export default function VouchersPage() {
     if (kind === "hotel") {
       const h = hotels.find((x) => x.id === id);
       if (!h) return;
+      const nights = hotelNights(h.checkIn, h.checkOut);
+      const perNight = nights > 0 ? Math.round(h.salePrice / nights) : h.salePrice;
       generateVoucherPDF({
         kind: "hotel",
         bookingId: h.bookingId,
@@ -36,9 +38,12 @@ export default function VouchersPage() {
           { label: "Room", value: h.roomType },
           { label: "Check-in", value: formatDate(h.checkIn) },
           { label: "Check-out", value: formatDate(h.checkOut) },
+          { label: "Nights", value: String(nights) },
+          { label: "Per Night", value: formatPKR(perNight) },
           ...(h.referenceNumber ? [{ label: "Confirmation No", value: h.referenceNumber }] : []),
           ...(h.contactPerson ? [{ label: "Hotel Contact", value: h.contactPerson }] : []),
         ],
+        amount: formatPKR(h.salePrice),
       });
     } else if (kind === "transport") {
       const t = transports.find((x) => x.id === id);

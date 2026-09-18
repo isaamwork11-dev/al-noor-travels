@@ -18,6 +18,9 @@ interface Row {
   entryDate: string;
   kind: string;
   particulars: string;
+  passenger: string;
+  travelLabel: string;
+  returnLabel: string;
   amount: number;
   status: string;
   detailHref?: string;
@@ -34,6 +37,7 @@ export default function BookingsPage() {
   const tourPackages = useAppStore((s) => s.tourPackages);
   const travelBookings = useAppStore((s) => s.travelBookings);
   const payments = useAppStore((s) => s.payments);
+  const refunds = useAppStore((s) => s.refunds);
 
   const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
 
@@ -58,8 +62,9 @@ export default function BookingsPage() {
       tourPackages,
       travelBookings,
       payments,
+      refunds,
     }),
-    [customers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments]
+    [customers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments, refunds]
   );
 
   const rows: Row[] = useMemo(() => {
@@ -72,7 +77,10 @@ export default function BookingsPage() {
         customerName: customerName(t.customerId),
         entryDate: t.createdAt,
         kind: "Ticket",
-        particulars: `Air Ticket — ${t.sector}${t.tripType === "Return" && t.returnDate ? ` (Return ${formatDate(t.returnDate)})` : ""}`,
+        particulars: `Air Ticket — ${t.sector}`,
+        passenger: t.passengerName,
+        travelLabel: formatDate(t.travelDate),
+        returnLabel: t.tripType === "Return" && t.returnDate ? formatDate(t.returnDate) : "—",
         amount: t.totalAmount || t.salePrice,
         status: t.status,
       })),
@@ -84,6 +92,9 @@ export default function BookingsPage() {
         entryDate: v.createdAt,
         kind: "Visa",
         particulars: v.visaType,
+        passenger: "—",
+        travelLabel: formatDate(v.submissionDate),
+        returnLabel: v.approvalDate ? formatDate(v.approvalDate) : "—",
         amount: v.salePrice,
         status: v.status,
       })),
@@ -95,6 +106,9 @@ export default function BookingsPage() {
         entryDate: h.createdAt,
         kind: "Hotel",
         particulars: `${h.hotelName} — ${h.city}`,
+        passenger: "—",
+        travelLabel: formatDate(h.checkIn),
+        returnLabel: formatDate(h.checkOut),
         amount: h.salePrice,
         status: h.status,
       })),
@@ -106,6 +120,9 @@ export default function BookingsPage() {
         entryDate: t.createdAt,
         kind: "Transport",
         particulars: `${t.type} — ${t.pickup} → ${t.dropoff}`,
+        passenger: "—",
+        travelLabel: formatDate(t.date),
+        returnLabel: "—",
         amount: t.salePrice,
         status: t.status,
       })),
@@ -117,6 +134,9 @@ export default function BookingsPage() {
         entryDate: u.createdAt,
         kind: "Umrah",
         particulars: u.packageName,
+        passenger: "—",
+        travelLabel: formatDate(u.travelDate),
+        returnLabel: formatDate(u.returnDate),
         amount: u.salePrice,
         status: u.status,
       })),
@@ -128,6 +148,9 @@ export default function BookingsPage() {
         entryDate: t.createdAt,
         kind: "Tour",
         particulars: t.packageName,
+        passenger: "—",
+        travelLabel: formatDate(t.travelDate),
+        returnLabel: formatDate(t.returnDate),
         amount: t.salePrice,
         status: t.status,
       })),
@@ -139,6 +162,9 @@ export default function BookingsPage() {
         entryDate: b.createdAt,
         kind: "Booking",
         particulars: b.title || "Travel Booking",
+        passenger: "—",
+        travelLabel: formatDate(b.travelDate),
+        returnLabel: formatDate(b.returnDate),
         amount: b.totalSale,
         status: b.status,
         detailHref: `/bookings/${b.id}`,
@@ -218,13 +244,16 @@ export default function BookingsPage() {
           <EmptyState message="No bookings in this period. Adjust the date range or create a new booking." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-left text-sm">
+            <table className="w-full min-w-[1200px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-500">
                   <th className="pb-2 font-medium">Date of Entry</th>
                   <th className="pb-2 font-medium">Booking No</th>
                   <th className="pb-2 font-medium">Type</th>
                   <th className="pb-2 font-medium">Customer</th>
+                  <th className="pb-2 font-medium">Passenger / Guest</th>
+                  <th className="pb-2 font-medium">Travel / Check-in</th>
+                  <th className="pb-2 font-medium">Return / Check-out</th>
                   <th className="pb-2 font-medium">Particulars</th>
                   <th className="pb-2 font-medium">Total</th>
                   <th className="pb-2 font-medium">Received</th>
@@ -253,6 +282,9 @@ export default function BookingsPage() {
                         </span>
                       </td>
                       <td className="py-2.5 text-slate-600">{r.customerName}</td>
+                      <td className="py-2.5 text-slate-600">{r.passenger}</td>
+                      <td className="py-2.5 text-slate-600">{r.travelLabel}</td>
+                      <td className="py-2.5 text-slate-600">{r.returnLabel}</td>
                       <td className="py-2.5 text-slate-700">{r.particulars}</td>
                       <td className="py-2.5 font-medium text-slate-800">{formatPKR(r.amount)}</td>
                       <td className="py-2.5 font-medium text-emerald-700">{formatPKR(m.received)}</td>

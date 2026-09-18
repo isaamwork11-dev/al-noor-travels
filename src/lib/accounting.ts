@@ -3,6 +3,7 @@ import type {
   Customer,
   HotelBooking,
   Payment,
+  Refund,
   Supplier,
   TourPackage,
   TransportBooking,
@@ -30,6 +31,7 @@ export interface LedgerSource {
   tourPackages: TourPackage[];
   travelBookings: TravelBooking[];
   payments: Payment[];
+  refunds: Refund[];
 }
 
 export interface PartyEntry {
@@ -59,8 +61,16 @@ export interface PartyLedger {
   closing: number;
 }
 
-/** Booking statuses that actually generate a charge in the accounts. */
-const ACTIVE_STATUSES = ["Confirmed", "Pending", "Completed"];
+/** Booking statuses that actually generate a charge in the accounts.
+ *  Visa records commonly live as "In Process" / "Approved" — both are
+ *  billable to the customer, so they must appear in the ledger. */
+const ACTIVE_STATUSES = [
+  "Confirmed",
+  "Pending",
+  "Completed",
+  "In Process",
+  "Approved",
+];
 
 function isActive(status: string | undefined): boolean {
   return !!status && ACTIVE_STATUSES.includes(status);
@@ -77,6 +87,27 @@ const inRange = (date: string, from?: string, to?: string) => {
   if (to && date > to + "T23:59:59.999") return false;
   return true;
 };
+
+/** The customer a refund belongs to — by explicit id, then by booking, then
+ *  by the referenced ticket record (legacy refund rows have no customerId). */
+function refundCustomerId(r: Refund, data: LedgerSource): string | undefined {
+  if (r.customerId) return r.customerId;
+  const byBooking = [
+    ...data.airTickets,
+    ...data.visas,
+    ...data.hotels,
+    ...data.transports,
+    ...data.umrahPackages,
+    ...data.tourPackages,
+    ...data.travelBookings,
+  ].find((record) => record.bookingId === r.bookingId);
+  if (byBooking && byBooking.customerId) return byBooking.customerId;
+  if (r.referenceId) {
+    const ticket = data.airTickets.find((t) => t.id === r.referenceId);
+    if (ticket?.customerId) return ticket.customerId;
+  }
+  return undefined;
+}
 
 export function buildPartyLedger(
   partyType: "Customer" | "Supplier",
@@ -171,6 +202,20 @@ export function buildPartyLedger(
         description: p.note || "Payment received",
         debit: 0,
         credit: p.amountPKR,
+      });
+    }
+    // A processed refund is a separate adjustment — the original sale stays
+    // intact, the refunded amount reduces the customer's receivable.
+    for (const r of data.refunds) {
+      if (r.status !== "Processed") continue;
+      const owner = refundCustomerId(r, data);
+      if (!owner || owner !== partyId) continue;
+      entries.push({
+        date: r.createdAt,
+        ref: r.bookingId,
+        description: `Refund (${r.refundType}) — ${r.refundAmount > 0 ? "refunded to customer" : "adjustment"}`,
+        debit: 0,
+        credit: r.refundAmount,
       });
     }
   } else {
@@ -293,11 +338,15 @@ export function bookingMoney(bookingId: string, data: LedgerSource): BookingMone
     .filter((p) => p.type === "Customer" && p.bookingId === bookingId && receivedStatus(p))
     .reduce((a, p) => a + p.amountPKR, 0);
 
+  const refunded = data.refunds
+    .filter((r) => r.status === "Processed" && r.bookingId === bookingId)
+    .reduce((a, r) => a + r.refundAmount, 0);
+
   return {
     bookingId,
     total,
     received,
-    balance: Math.max(0, total - received),
+    balance: Math.max(0, total - received - refunded),
   };
 }
 

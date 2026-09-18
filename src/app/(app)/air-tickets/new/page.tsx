@@ -41,6 +41,7 @@ export default function NewAirTicketPage() {
     perTicketPrice: 0,
     status: "Confirmed" as BookingStatus,
     currency: "PKR" as Currency,
+    refundable: false,
   });
   const [saving, setSaving] = useState(false);
 
@@ -71,6 +72,7 @@ export default function NewAirTicketPage() {
       perTicketPrice: existingTicket.perTicketPrice || existingTicket.salePrice / (existingTicket.pax || 1),
       status: existingTicket.status,
       currency: "PKR",
+      refundable: existingTicket.refundable ?? false,
     });
   }, [existingTicket]);
 
@@ -114,6 +116,7 @@ export default function NewAirTicketPage() {
       salePrice: totalAmount,
       status: form.status,
       currency: form.currency,
+      refundable: form.refundable,
       createdBy: user.id,
       };
       if (existingTicket) await updateTicket(existingTicket.id, payload);
@@ -242,6 +245,19 @@ export default function NewAirTicketPage() {
                 </option>
               ))}
             </Select>
+            <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <input
+                type="checkbox"
+                checked={form.refundable}
+                onChange={(e) => setForm({ ...form, refundable: e.target.checked })}
+                className="mt-0.5 h-4 w-4 accent-blue-600"
+              />
+              <span className="text-xs text-slate-600">
+                <span className="font-medium text-slate-800">Refundable ticket</span>
+                <br />
+                Mark if the airline allows a refund — a refund note can then be created against this ticket.
+              </span>
+            </label>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">

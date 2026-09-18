@@ -10,7 +10,7 @@ import { generateLedgerPDF } from "@/lib/pdf";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
 import { FileDown, HandCoins } from "lucide-react";
 
-const tabs = ["Tickets", "Visas", "Hotels", "Umrah", "Transport", "Payments"] as const;
+const tabs = ["Tickets", "Visas", "Hotels", "Umrah", "Transport", "Payments", "Refunds"] as const;
 
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
@@ -25,6 +25,7 @@ export default function CustomerDetailPage() {
   const tourPackages = useAppStore((s) => s.tourPackages);
   const travelBookings = useAppStore((s) => s.travelBookings);
   const payments = useAppStore((s) => s.payments);
+  const refunds = useAppStore((s) => s.refunds);
   const addPayment = useAppStore((s) => s.addPayment);
   const [tab, setTab] = useState<(typeof tabs)[number]>("Tickets");
 
@@ -34,6 +35,7 @@ export default function CustomerDetailPage() {
     bookingId: "",
     amount: 0,
     status: "Partial" as "Pending" | "Paid" | "Partial",
+    method: "Cash" as "Cash" | "Bank" | "Card" | "Cheque" | "Other" | "",
     note: "",
   });
 
@@ -51,42 +53,56 @@ export default function CustomerDetailPage() {
       tourPackages,
       travelBookings,
       payments,
+      refunds,
     }),
-    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments]
+    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments, refunds]
   );
 
   const ledger = useMemo(() => (customer ? buildPartyLedger("Customer", customer.id, ledgerSource) : null), [customer, ledgerSource]);
 
-  const bookingOptions = Array.from(
-    new Set([
-      ...airTickets,
-      ...visas,
-      ...hotels,
-      ...umrahPackages,
-      ...transports,
-      ...tourPackages,
-      ...travelBookings,
-    ]
-      .filter((x) => x.customerId === id)
-      .map((x) => x.bookingId))
-  ).filter(Boolean);
+  const statementPeriod = useMemo(() => {
+    if (!ledger || ledger.rows.length === 0) return { from: "", to: todayISO() };
+    const from = ledger.rows[0].date;
+    const to = ledger.rows[ledger.rows.length - 1].date;
+    return { from: from.slice(0, 10), to: to.slice(0, 10) };
+  }, [ledger]);
+
+  const bookingOptions = useMemo(() => {
+    const rows: { bookingId: string; label: string }[] = [];
+    const push = (bookingId: string, kind: string, dates: string, amount: number) =>
+      rows.push({ bookingId, label: `${bookingId} — ${kind} · ${formatDate(dates)} · ${formatPKR(amount)}` });
+    for (const t of airTickets) if (t.customerId === id) push(t.bookingId, "Ticket", t.travelDate, t.totalAmount || t.salePrice);
+    for (const v of visas) if (v.customerId === id) push(v.bookingId, "Visa", v.submissionDate, v.salePrice);
+    for (const h of hotels) if (h.customerId === id) push(h.bookingId, "Hotel", h.checkIn, h.salePrice);
+    for (const u of umrahPackages) if (u.customerId === id) push(u.bookingId, "Umrah", u.travelDate, u.salePrice);
+    for (const t of transports) if (t.customerId === id) push(t.bookingId, "Transport", t.date, t.salePrice);
+    for (const t of tourPackages) if (t.customerId === id) push(t.bookingId, "Tour", t.travelDate, t.salePrice);
+    for (const b of travelBookings) if (b.customerId === id) push(b.bookingId, "Booking", b.travelDate, b.totalSale);
+    const seen = new Set<string>();
+    return rows.filter((r) => {
+      if (seen.has(r.bookingId)) return false;
+      seen.add(r.bookingId);
+      return true;
+    });
+  }, [id, airTickets, visas, hotels, umrahPackages, transports, tourPackages, travelBookings]);
 
   const submitPayment = async (e: FormEvent) => {
     e.preventDefault();
     if (!customer || saving) return;
-    if (!payForm.bookingId || payForm.amount <= 0) return;
+    if (payForm.amount <= 0) return;
     setSaving(true);
     try {
       await addPayment({
         type: "Customer",
         partyId: customer.id,
         partyName: customer.name,
-        bookingId: payForm.bookingId,
+        ...(payForm.bookingId ? { bookingId: payForm.bookingId } : {}),
         amount: Number(payForm.amount),
         currency: "PKR",
         amountPKR: Number(payForm.amount),
         dueDate: todayISO(),
         status: payForm.status,
+        method: payForm.method,
         note: payForm.note,
         ...(payForm.status === "Paid" ? { paidDate: todayISO() } : {}),
       });
@@ -105,8 +121,9 @@ export default function CustomerDetailPage() {
       Umrah: umrahPackages.filter((u) => u.customerId === customer.id),
       Transport: transports.filter((t) => t.customerId === customer.id),
       Payments: payments.filter((p) => p.type === "Customer" && p.partyId === customer.id),
+      Refunds: refunds.filter((r) => r.customerId === customer.id),
     };
-  }, [customer, airTickets, visas, hotels, umrahPackages, transports, payments]);
+  }, [customer, airTickets, visas, hotels, umrahPackages, transports, payments, refunds]);
 
   if (!customer) {
     return (
@@ -126,16 +143,19 @@ export default function CustomerDetailPage() {
     <div>
       <PageHeader title={customer.name} breadcrumb={`Home / Customers / ${customer.customerId}`} />
 
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="mb-5 flex flex-wrap items-center gap-2">
         <Button
           variant="secondary"
-          onClick={() => ledger && generateLedgerPDF(ledger, "", "")}
+          onClick={() => ledger && generateLedgerPDF(ledger, statementPeriod.from, statementPeriod.to)}
         >
           <FileDown size={16} /> Download Statement PDF
         </Button>
         <Button onClick={() => setPayOpen(true)}>
           <HandCoins size={16} /> Receive Payment
         </Button>
+        <span className="text-xs text-slate-500">
+          Statement period: {statementPeriod.from ? formatDate(statementPeriod.from) : "Beginning"} — {formatDate(statementPeriod.to)}
+        </span>
       </div>
 
       {ledger && (
@@ -332,6 +352,20 @@ export default function CustomerDetailPage() {
               headers={["ID", "Amount", "Due", "Paid", "Status"]}
             />
           )}
+          {tab === "Refunds" && (
+            <HistoryTable
+              empty="No refunds."
+              rows={history!.Refunds.map((r) => [
+                r.referenceId,
+                r.refundType,
+                formatPKR(r.originalAmount),
+                formatPKR(r.refundAmount),
+                formatDate(r.createdAt),
+                r.status,
+              ])}
+              headers={["Ticket", "Type", "Original", "Refunded", "Date", "Status"]}
+            />
+          )}
         </Card>
       </div>
 
@@ -339,15 +373,14 @@ export default function CustomerDetailPage() {
         <form onSubmit={submitPayment} className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <Select
-              label="Booking"
-              required
+              label="Booking (optional — leave blank to record against the account alone)"
               value={payForm.bookingId}
               onChange={(e) => setPayForm({ ...payForm, bookingId: e.target.value })}
             >
-              <option value="">Select booking</option>
-              {bookingOptions.map((bookingId) => (
-                <option key={bookingId} value={bookingId}>
-                  {bookingId}
+              <option value="">No specific booking (account only)</option>
+              {bookingOptions.map((option) => (
+                <option key={option.bookingId} value={option.bookingId}>
+                  {option.label}
                 </option>
               ))}
             </Select>
@@ -368,6 +401,17 @@ export default function CustomerDetailPage() {
             <option value="Paid">Full Payment (Paid)</option>
             <option value="Partial">Partial / Installment</option>
             <option value="Pending">Pending</option>
+          </Select>
+          <Select
+            label="Payment Method"
+            value={payForm.method}
+            onChange={(e) => setPayForm({ ...payForm, method: e.target.value as typeof payForm.method })}
+          >
+            <option value="Cash">Cash</option>
+            <option value="Bank">Bank Transfer</option>
+            <option value="Card">Card</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Other">Other</option>
           </Select>
           <Input
             label="Note (optional)"

@@ -17,7 +17,7 @@ import {
   type DbRecord,
 } from "@/lib/api-helpers";
 import { nextId, nowISO } from "@/lib/format";
-import { AppSettings, SETTINGS_ID, User } from "@/models";
+import { AppSettings, Refund, SETTINGS_ID, User } from "@/models";
 
 export const dynamic = "force-dynamic";
 
@@ -106,12 +106,47 @@ export async function POST(request: NextRequest, ctx: Context) {
     }
 
     if (collection === "payments") {
-      if (typeof body.bookingId !== "string" || !body.bookingId) {
-        return jsonError("A booking is required for every payment", 400);
-      }
       if (typeof body.partyId !== "string" || !body.partyId) {
         return jsonError("A client or vendor account is required for every payment", 400);
       }
+    }
+
+    // Refunds must reference a real, refundable air ticket that has not
+    // already been refunded. Amounts are derived server-side so the ledger
+    // always shows consistent figures.
+    if (collection === "refunds") {
+      const referenceId = String(body.referenceId ?? "");
+      const ticketBase = COLLECTIONS.airTickets.model;
+      const ticket = await ticketBase.findOne({ id: referenceId }).lean<DbRecord>();
+      if (!ticket) return jsonError("The referenced air ticket was not found", 400);
+      if (ticket.refundable !== true) {
+        return jsonError("This ticket is not refundable — no refund can be processed", 400);
+      }
+      const existing = await Refund.exists({ referenceId });
+      if (existing) return jsonError("This ticket has already been refunded", 409);
+
+      const ticketId = String(ticket.id);
+      const bookingId = String(ticket.bookingId ?? "");
+      const originalAmount = Number(ticket.salePrice) || 0;
+      const airlineCharges = Math.max(0, Number(body.airlineCharges) || 0);
+      const serviceCharges = Math.max(0, Number(body.serviceCharges) || 0);
+      const refundType = body.refundType === "Full" ? "Full" : body.refundType === "Used + Refunded" ? "Used + Refunded" : "Partial";
+      const maxRefund = Math.max(0, originalAmount - airlineCharges - serviceCharges);
+      const refundAmount =
+        refundType === "Full"
+          ? maxRefund
+          : Math.max(0, Math.min(Number(body.refundAmount) || 0, maxRefund));
+
+      body.id = ticketId;
+      body.referenceId = ticketId;
+      body.bookingId = bookingId;
+      body.customerId = String(ticket.customerId ?? "");
+      body.customerName = String(body.customerName ?? "");
+      body.originalAmount = originalAmount;
+      body.refundType = refundType;
+      body.airlineCharges = airlineCharges;
+      body.serviceCharges = serviceCharges;
+      body.refundAmount = refundAmount;
     }
 
     const payload = stripProtectedFields(body);

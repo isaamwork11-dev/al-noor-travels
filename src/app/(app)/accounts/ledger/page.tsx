@@ -20,6 +20,7 @@ export default function LedgerPage() {
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const tourPackages = useAppStore((s) => s.tourPackages);
   const travelBookings = useAppStore((s) => s.travelBookings);
+  const refunds = useAppStore((s) => s.refunds);
 
   const canView = user?.role === "super_admin" || !!user?.permissions.viewAccounts;
 
@@ -47,8 +48,9 @@ export default function LedgerPage() {
       tourPackages,
       travelBookings,
       payments,
+      refunds,
     }),
-    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments]
+    [customers, suppliers, airTickets, visas, hotels, transports, umrahPackages, tourPackages, travelBookings, payments, refunds]
   );
 
   const ledger = useMemo(
@@ -126,6 +128,9 @@ export default function LedgerPage() {
 
         {ledger && (
           <>
+            <p className="mb-3 text-xs font-medium text-slate-500">
+              Statement period: {formatDate(from)} — {formatDate(to)}
+            </p>
             <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs text-slate-500">Opening Balance</p>
