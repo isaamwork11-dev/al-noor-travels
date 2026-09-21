@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
-import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
 export default function VisasPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -16,6 +17,7 @@ export default function VisasPage() {
   const deleteVisa = useAppStore((s) => s.deleteVisa);
   const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
+  const [confirmDelete, setConfirmDelete] = useState<(typeof visas)[number] | null>(null);
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   return (
@@ -74,7 +76,7 @@ export default function VisasPage() {
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(v.updatedAt || v.createdAt)}</td>
                     <td className="py-2.5 whitespace-nowrap">
                       {canEdit && <Link href={`/visas/new?edit=${v.id}`} className="mr-2 text-xs text-slate-600 hover:underline"><Pencil size={14} className="inline" /> Edit</Link>}
-                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this visa permanently?") && deleteVisa(v.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(v)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
                 ))}
@@ -83,6 +85,17 @@ export default function VisasPage() {
           </div>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this visa?"
+        message={`Are you sure you want to delete ${confirmDelete?.visaType || "this visa"} (${confirmDelete?.passportNo || ""}) permanently? This cannot be undone.`}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) void deleteVisa(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+      />
     </div>
   );
 }

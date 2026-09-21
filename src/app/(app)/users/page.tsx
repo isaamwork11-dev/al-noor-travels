@@ -8,6 +8,7 @@ import type { UserPermissions, UserRole } from "@/lib/types";
 import {
   Button,
   Card,
+  ConfirmDialog,
   EmptyState,
   Input,
   Modal,
@@ -110,6 +111,7 @@ export default function UsersPage() {
   const [permUserId, setPermUserId] = useState<string | null>(null);
   const permUser = users.find((u) => u.id === permUserId);
   const [editPerms, setEditPerms] = useState<UserPermissions>({ ...EMPTY_PERMS });
+  const [confirmDelete, setConfirmDelete] = useState<(typeof users)[number] | null>(null);
 
   useEffect(() => {
     // Hydrate the permissions dialog when a user is selected.
@@ -203,7 +205,7 @@ export default function UsersPage() {
                             >
                               {u.active ? "Deactivate" : "Activate"}
                             </Button>
-                            <Button variant="danger" className="!px-2 !py-1 text-xs" onClick={() => confirm("Delete this user permanently?") && deleteUser(u.id)}>
+                            <Button variant="danger" className="!px-2 !py-1 text-xs" onClick={() => setConfirmDelete(u)}>
                               <Trash2 size={13} /> Delete
                             </Button>
                           </>
@@ -323,6 +325,17 @@ export default function UsersPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this user?"
+        message={`Are you sure you want to delete ${confirmDelete?.name || "this user"} (${confirmDelete?.username || ""}) permanently? This cannot be undone.`}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) void deleteUser(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+      />
     </div>
   );
 }

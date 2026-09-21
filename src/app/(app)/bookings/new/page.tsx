@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { BadgeCheck, Bus, FileText, Hotel, Plane, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import {
   computeBookingTotals,
@@ -18,6 +18,7 @@ import type {
 } from "@/lib/types";
 import { SarCostFields } from "@/components/SarCostFields";
 import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
+import { cn } from "@/components/ui";
 
 function emptyTicket(exchangeRate: number): BookingTicketLine {
   return normalizeTicketLine({
@@ -57,6 +58,14 @@ function emptyService(kind: BookingServiceKind, exchangeRate: number): BookingSe
   });
 }
 
+const KIND_META: { kind: BookingServiceKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; color: string }[] = [
+  { kind: "ticket", label: "Ticket", icon: Plane, color: "from-blue-500 to-blue-600 shadow-blue-200" },
+  { kind: "visa", label: "Visa", icon: FileText, color: "from-emerald-500 to-emerald-600 shadow-emerald-200" },
+  { kind: "hotel", label: "Hotel", icon: Hotel, color: "from-violet-500 to-violet-600 shadow-violet-200" },
+  { kind: "transport", label: "Transport", icon: Bus, color: "from-orange-500 to-orange-600 shadow-orange-200" },
+  { kind: "umrah", label: "Umrah", icon: BadgeCheck, color: "from-cyan-500 to-cyan-600 shadow-cyan-200" },
+];
+
 export default function NewBookingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,6 +79,9 @@ export default function NewBookingPage() {
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
 
+  const kindParam = (searchParams.get("kind") || "") as BookingServiceKind;
+  const validKind = KIND_META.some((k) => k.kind === kindParam);
+
   const [header, setHeader] = useState({
     customerId: customers[0]?.id || "",
     title: "",
@@ -78,10 +90,9 @@ export default function NewBookingPage() {
     status: "Confirmed" as BookingStatus,
     notes: "",
   });
-  const [services, setServices] = useState<BookingServiceItem[]>([
-    emptyService("visa", exchangeRates.SAR || 73.9),
-  ]);
-  const [addKind, setAddKind] = useState<BookingServiceKind>("hotel");
+  const [services, setServices] = useState<BookingServiceItem[]>(() =>
+    validKind ? [emptyService(kindParam, exchangeRates.SAR || 73.9)] : []
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -90,6 +101,13 @@ export default function NewBookingPage() {
   useEffect(() => { if (existing) { setHeader({ customerId: existing.customerId, title: existing.title, travelDate: existing.travelDate, returnDate: existing.returnDate, status: existing.status, notes: existing.notes }); setServices(existing.services); } }, [existing]);
 
   const totals = useMemo(() => computeBookingTotals(services), [services]);
+
+  const addService = (kind: BookingServiceKind) => {
+    setServices((prev) => [
+      ...prev,
+      { ...emptyService(kind, exchangeRates.SAR || 73.9), id: nextId("svc") },
+    ]);
+  };
 
   const updateService = (index: number, patch: Partial<BookingServiceItem>) => {
     setServices((prev) => {
@@ -122,7 +140,7 @@ export default function NewBookingPage() {
       return;
     }
     if (services.length === 0) {
-      setError("Add at least one service.");
+      setError("Pick a category above and add at least one service.");
       return;
     }
     setSaving(true);
@@ -144,10 +162,35 @@ export default function NewBookingPage() {
 
   return (
     <div>
-      <PageHeader title={existing ? "Edit Travel Booking" : "New Travel Booking"} breadcrumb="Home / Bookings / New" />
+      <PageHeader title={existing ? "Edit Travel Booking" : "New Entry"} breadcrumb="Home / Bookings / New Entry" />
 
       <form onSubmit={onSubmit} className="space-y-4">
-        <Card title="Booking Details">
+        <Card title="1 · What are you entering? (Ticket / Visa / Hotel / Transport / Umrah)">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {KIND_META.map(({ kind, label, icon: Icon, color }) => (
+              <button
+                key={kind}
+                type="button"
+                onClick={() => addService(kind)}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-xl bg-gradient-to-br p-3 text-left text-sm font-semibold text-white shadow-md transition hover:scale-[1.02]",
+                  color
+                )}
+              >
+                <Icon size={18} />
+                {label}
+                <Plus size={14} className="ml-auto opacity-70" />
+              </button>
+            ))}
+          </div>
+          {services.length > 0 && (
+            <p className="mt-2 text-xs text-slate-400">
+              Tap a category anytime to add more services to this entry.
+            </p>
+          )}
+        </Card>
+
+        <Card title="2 · Booking Details">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Select
               label="Customer"
@@ -200,6 +243,12 @@ export default function NewBookingPage() {
             />
           </div>
         </Card>
+
+        {services.length === 0 && !existing && (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+            No service added yet — pick a category above (Ticket, Visa, Hotel, Transport, Umrah) to start the entry.
+          </div>
+        )}
 
         {services.map((svc, si) => (
           <Card
@@ -266,6 +315,48 @@ export default function NewBookingPage() {
                   onChange={(e) =>
                     updateService(si, {
                       details: { ...svc.details, country: e.target.value },
+                    })
+                  }
+                />
+              </div>
+            )}
+
+            {svc.kind === "umrah" && (
+              <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Input
+                  label="Package Name"
+                  value={svc.details.packageName || ""}
+                  onChange={(e) =>
+                    updateService(si, {
+                      details: { ...svc.details, packageName: e.target.value },
+                      title: e.target.value || svc.title,
+                    })
+                  }
+                />
+                <Input
+                  label="Hotel / Makkah-Madinah"
+                  value={svc.details.hotelName || ""}
+                  onChange={(e) =>
+                    updateService(si, {
+                      details: { ...svc.details, hotelName: e.target.value },
+                    })
+                  }
+                />
+                <Input
+                  label="City"
+                  value={svc.details.city || ""}
+                  onChange={(e) =>
+                    updateService(si, {
+                      details: { ...svc.details, city: e.target.value },
+                    })
+                  }
+                />
+                <Input
+                  label="Includes Visa"
+                  value={svc.details.includesVisa || ""}
+                  onChange={(e) =>
+                    updateService(si, {
+                      details: { ...svc.details, includesVisa: e.target.value },
                     })
                   }
                 />
@@ -565,36 +656,7 @@ export default function NewBookingPage() {
           </Card>
         ))}
 
-        <Card title="Add Another Service">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="w-48">
-              <Select
-                label="Service Type"
-                value={addKind}
-                onChange={(e) => setAddKind(e.target.value as BookingServiceKind)}
-              >
-                <option value="visa">Visa</option>
-                <option value="hotel">Hotel</option>
-                <option value="transport">Transport</option>
-                <option value="ticket">Tickets</option>
-              </Select>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() =>
-                setServices((prev) => [
-                  ...prev,
-                  { ...emptyService(addKind, exchangeRates.SAR || 73.9), id: nextId("svc") },
-                ])
-              }
-            >
-              <Plus size={16} /> Add Service
-            </Button>
-          </div>
-        </Card>
-
-        <Card title="Booking Totals">
+        <Card title="3 · Booking Totals">
           <div className="grid gap-3 sm:grid-cols-3">
             {showCost && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -632,7 +694,7 @@ export default function NewBookingPage() {
             Cancel
           </Button>
           <Button type="submit" disabled={saving}>
-            {saving ? "Saving…" : "Create Booking"}
+            {saving ? "Saving…" : existing ? "Update Booking" : "Save Entry"}
           </Button>
         </div>
       </form>

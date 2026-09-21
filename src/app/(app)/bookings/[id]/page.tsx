@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
-import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
 export default function BookingDetailPage({
   params,
@@ -24,6 +24,7 @@ export default function BookingDetailPage({
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (!booking) {
     return (
@@ -41,7 +42,7 @@ export default function BookingDetailPage({
     suppliers.find((s) => s.id === sid)?.name || "—";
 
   const onDelete = async () => {
-    if (!confirm("Delete this booking permanently?")) return;
+    setConfirmOpen(false);
     setDeleting(true);
     try {
       await deleteTravelBooking(booking.id);
@@ -74,7 +75,7 @@ export default function BookingDetailPage({
             <Button variant="secondary">Back</Button>
           </Link>
           {canDelete && (
-            <Button variant="danger" onClick={onDelete} disabled={deleting}>
+            <Button variant="danger" onClick={() => setConfirmOpen(true)} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           )}
@@ -219,6 +220,14 @@ export default function BookingDetailPage({
           </Card>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete this booking?"
+        message={`Are you sure you want to delete booking ${booking.bookingId} permanently? This cannot be undone.`}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={onDelete}
+      />
     </div>
   );
 }

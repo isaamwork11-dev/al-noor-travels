@@ -147,7 +147,6 @@ export default function NewAirTicketPage() {
                 }} />
                 <Input label="Passport (Optional)" value={form.passengers[index]?.passportNumber || ""} onChange={(e) => { const passengers = [...form.passengers]; passengers[index] = { ...passengers[index], passportNumber: e.target.value }; setForm({ ...form, passengers }); }} />
                 <Input label="CNIC (Optional)" value={form.passengers[index]?.cnic || ""} onChange={(e) => { const passengers = [...form.passengers]; passengers[index] = { ...passengers[index], cnic: e.target.value }; setForm({ ...form, passengers }); }} />
-                <Input label="Date of Birth (Optional)" type="date" value={form.passengers[index]?.dateOfBirth || ""} onChange={(e) => { const passengers = [...form.passengers]; passengers[index] = { ...passengers[index], dateOfBirth: e.target.value }; setForm({ ...form, passengers }); }} />
                 <Select label="Gender (Optional)" value={form.passengers[index]?.gender || ""} onChange={(e) => { const passengers = [...form.passengers]; passengers[index] = { ...passengers[index], gender: e.target.value }; setForm({ ...form, passengers }); }}><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></Select>
               </div>
             ))}

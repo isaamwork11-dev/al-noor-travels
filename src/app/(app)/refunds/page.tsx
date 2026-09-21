@@ -6,7 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatPKR } from "@/lib/format";
 import type { ServiceType } from "@/lib/types";
-import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
 
 export default function RefundsPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -18,6 +18,7 @@ export default function RefundsPage() {
   const canCreate =
     user?.role === "super_admin" || !!user?.permissions.createRecords;
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
+  const [confirmDelete, setConfirmDelete] = useState<(typeof refunds)[number] | null>(null);
 
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -116,7 +117,7 @@ export default function RefundsPage() {
                       <StatusBadge status={r.status} />
                     </td>
                     <td className="py-2.5">
-                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this refund permanently?") && deleteRefund(r.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(r)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                     <td className="py-2.5 text-slate-500">{formatDate(r.createdAt)}</td>
                   </tr>
@@ -198,6 +199,17 @@ export default function RefundsPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this refund?"
+        message={`Are you sure you want to delete this refund of ${confirmDelete ? formatPKR(confirmDelete.refundAmount) : ""} for ${confirmDelete?.customerName || ""} permanently? This cannot be undone.`}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) void deleteRefund(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+      />
     </div>
   );
 }

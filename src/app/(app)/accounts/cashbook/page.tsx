@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { FileDown, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR, todayISO } from "@/lib/format";
+import { exportCSV } from "@/lib/csv";
 import type { Currency } from "@/lib/types";
-import { Button, Card, EmptyState, Input, Modal, PageHeader, Select } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Select } from "@/components/ui";
 
 export default function CashBookPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -20,6 +21,7 @@ export default function CashBookPage() {
 
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<(typeof cashBook)[number] | null>(null);
   const [form, setForm] = useState({
     type: "Income" as "Income" | "Expense",
     category: "Sales",
@@ -42,6 +44,25 @@ export default function CashBookPage() {
 
   const income = cashBook.filter((e) => e.type === "Income").reduce((a, e) => a + e.amountPKR, 0);
   const expense = cashBook.filter((e) => e.type === "Expense").reduce((a, e) => a + e.amountPKR, 0);
+
+  const downloadCSV = () => {
+    exportCSV(
+      `cashbook-${todayISO()}.csv`,
+      ["Date", "Type", "Category", "Description", "Amount", "Currency", "PKR"],
+      cashBook
+        .slice()
+        .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+        .map((e) => [
+          formatDate(e.date),
+          e.type,
+          e.category,
+          e.description,
+          e.amount,
+          e.currency,
+          e.amountPKR,
+        ])
+    );
+  };
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -95,9 +116,14 @@ export default function CashBookPage() {
         title="Entries"
         action={
           canCreate ? (
-            <Button onClick={() => setOpen(true)}>
-              <Plus size={16} /> Add Entry
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={downloadCSV}>
+                <FileDown size={14} /> Excel (CSV)
+              </Button>
+              <Button onClick={() => setOpen(true)}>
+                <Plus size={16} /> Add Entry
+              </Button>
+            </div>
           ) : undefined
         }
       >
@@ -156,7 +182,7 @@ export default function CashBookPage() {
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(e.createdAt || e.date)}</td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(e.updatedAt || e.createdAt || e.date)}</td>
                     <td className="py-2.5">
-                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this cash entry permanently?") && deleteCashEntry(e.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(e)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
                 ))}
@@ -221,6 +247,17 @@ export default function CashBookPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this cash entry?"
+        message={`Are you sure you want to delete this ${confirmDelete?.type || ""} entry of ${confirmDelete ? formatPKR(confirmDelete.amountPKR) : ""}? This cannot be undone.`}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) void deleteCashEntry(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+      />
     </div>
   );
 }

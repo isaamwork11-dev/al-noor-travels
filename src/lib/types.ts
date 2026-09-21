@@ -272,6 +272,13 @@ export interface Payment {
   partyName: string;
   /** Optional — a payment can be recorded against the account alone. */
   bookingId?: string;
+  /**
+   * Cash direction.
+   * - "out": money went out (customer paid us = credit on customer / we paid vendor).
+   * - "in":  money came in (we received from vendor).
+   * Defaults to "out" for backward compatibility.
+   */
+  direction?: "out" | "in";
   amount: number;
   currency: Currency;
   amountPKR: number;
@@ -364,7 +371,7 @@ export interface BookingTicketLine {
   profit: number;
 }
 
-export type BookingServiceKind = "visa" | "hotel" | "transport" | "ticket";
+export type BookingServiceKind = "visa" | "hotel" | "transport" | "ticket" | "umrah";
 
 /** One service (visa / hotel / transport / tickets) inside a travel booking. */
 export interface BookingServiceItem {

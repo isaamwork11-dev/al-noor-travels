@@ -5,7 +5,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { calcProfit, formatDate, formatPKR, todayISO } from "@/lib/format";
 import type { BookingStatus } from "@/lib/types";
-import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
 
 export default function ToursPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -20,6 +20,7 @@ export default function ToursPage() {
     user?.role === "super_admin" || !!user?.permissions.createRecords;
   const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
+  const [confirmDelete, setConfirmDelete] = useState<(typeof tourPackages)[number] | null>(null);
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   const [open, setOpen] = useState(false);
@@ -120,7 +121,7 @@ export default function ToursPage() {
                     </td>
                     <td className="py-2.5 whitespace-nowrap">
                       {canEdit && <button type="button" className="mr-2 text-xs text-slate-600 hover:underline" onClick={() => edit(t)}><Pencil size={14} className="inline" /> Edit</button>}
-                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this tour permanently?") && deleteTour(t.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(t)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
                 ))}
@@ -211,6 +212,17 @@ export default function ToursPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this tour?"
+        message={`Are you sure you want to delete ${confirmDelete?.packageName || "this tour"} (${confirmDelete?.destination || ""}) permanently? This cannot be undone.`}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) void deleteTour(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+      />
     </div>
   );
 }

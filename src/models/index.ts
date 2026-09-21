@@ -337,7 +337,7 @@ const bookingServiceItemSchema = new Schema<SchemaRecord>(
     id: { type: String, required: true },
     kind: {
       type: String,
-      enum: ["visa", "hotel", "transport", "ticket"],
+      enum: ["visa", "hotel", "transport", "ticket", "umrah"],
       required: true,
     },
     supplierId: { type: String, default: "" },
@@ -381,6 +381,7 @@ const paymentSchema = new Schema<SchemaRecord>(
     partyId: { type: String, index: true },
     partyName: { type: String, default: "" },
     bookingId: { type: String, index: true },
+    direction: { type: String, enum: ["out", "in"], default: "out" },
     amount: { type: Number, default: 0 },
     currency: { type: String, default: "PKR" },
     amountPKR: { type: Number, default: 0 },

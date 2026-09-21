@@ -6,7 +6,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatPKR, todayISO } from "@/lib/format";
 import { monthlySummary, partyBalance, totalPayables, totalReceivables } from "@/lib/accounting";
-import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
 import type { Payment, PaymentMethod } from "@/lib/types";
 
 export default function AccountsPage() {
@@ -32,10 +32,12 @@ export default function AccountsPage() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [confirmDeletePayment, setConfirmDeletePayment] = useState<Payment | null>(null);
   const [form, setForm] = useState({
     type: "Customer" as "Customer" | "Supplier",
     partyId: "",
     bookingId: "",
+    direction: "out" as "out" | "in",
     amount: 0,
     status: "Paid" as "Pending" | "Paid" | "Partial",
     method: "" as PaymentMethod | "",
@@ -147,6 +149,7 @@ export default function AccountsPage() {
       type: "Customer",
       partyId: "",
       bookingId: "",
+      direction: "out",
       amount: 0,
       status: "Paid",
       method: customers.length ? "Cash" : "Other",
@@ -163,6 +166,7 @@ export default function AccountsPage() {
       type: p.type,
       partyId: p.partyId,
       bookingId: p.bookingId || "",
+      direction: p.direction || "out",
       amount: p.amountPKR,
       status: p.status,
       method: p.method || "",
@@ -184,6 +188,7 @@ export default function AccountsPage() {
       ...(form.bookingId ? { bookingId: form.bookingId } : { bookingId: "" }),
       partyId: party.id,
       partyName: party.name,
+      direction: form.type === "Supplier" ? form.direction : "in",
       amount: Number(form.amount),
       currency: "PKR" as const,
       amountPKR: Number(form.amount),
@@ -245,11 +250,12 @@ export default function AccountsPage() {
             </Button>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Summarized label="Sales (Bookings)" value={formatPKR(summary.sales)} tone="text-blue-800" />
           <Summarized label="Cost" value={formatPKR(summary.costs)} tone="text-rose-700" />
           <Summarized label="Received from Clients" value={formatPKR(summary.received)} tone="text-emerald-700" />
           <Summarized label="Paid to Suppliers" value={formatPKR(summary.paid)} tone="text-orange-700" />
+          <Summarized label="Received from Vendors" value={formatPKR(summary.receivedFromVendors)} tone="text-cyan-700" />
           <Summarized label="Receivables (Clients owe)" value={formatPKR(summary.receivables)} tone="text-rose-700" />
           <Summarized label="Payables (We owe)" value={formatPKR(summary.payables)} tone="text-amber-700" />
         </div>
@@ -385,7 +391,24 @@ export default function AccountsPage() {
                     );
                   return (
                     <tr key={p.id} className="border-b border-slate-50">
-                      <td className="py-2 text-slate-600">{p.type}</td>
+                      <td className="py-2 text-slate-600">
+                        {p.type === "Supplier" ? (
+                          <span>
+                            {p.type}
+                            <span
+                              className={`ml-1.5 rounded px-1 py-0.5 text-[10px] font-semibold ${
+                                p.direction === "in"
+                                  ? "bg-cyan-100 text-cyan-700"
+                                  : "bg-orange-100 text-orange-700"
+                              }`}
+                            >
+                              {p.direction === "in" ? "Money In" : "Paid Out"}
+                            </span>
+                          </span>
+                        ) : (
+                          <span>Client</span>
+                        )}
+                      </td>
                       <td className="py-2 text-slate-800">{partyLabel}</td>
                       <td className="py-2 font-medium">{formatPKR(p.amountPKR)}</td>
                       <td className="py-2 text-slate-600">{p.method || "—"}</td>
@@ -421,7 +444,7 @@ export default function AccountsPage() {
                           <button
                             type="button"
                             className="text-xs text-rose-600 hover:underline"
-                            onClick={() => confirm("Delete this payment permanently?") && deletePayment(p.id)}
+                            onClick={() => setConfirmDeletePayment(p)}
                           >
                             <Trash2 size={14} className="inline" /> Delete
                           </button>
@@ -450,6 +473,18 @@ export default function AccountsPage() {
             <option value="">Select account</option>
             {parties.map((party) => <option key={party.id} value={party.id}>{party.name}</option>)}
           </Select>
+          {form.type === "Supplier" && (
+            <div className="sm:col-span-2">
+              <Select
+                label="Direction (Vendors can give AND take money — len-den)"
+                value={form.direction}
+                onChange={(e) => setForm({ ...form, direction: e.target.value as "out" | "in" })}
+              >
+                <option value="out">We paid the vendor (vendor took money from us)</option>
+                <option value="in">Vendor gave us money (we took money from vendor)</option>
+              </Select>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <Select label="Booking (optional — leave blank to record against the account alone)" value={form.bookingId} onChange={(e) => setForm({ ...form, bookingId: e.target.value })}>
               <option value="">No specific booking (account only)</option>
@@ -485,6 +520,17 @@ export default function AccountsPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDeletePayment}
+        title="Delete this payment?"
+        message={`Are you sure you want to delete this ${confirmDeletePayment?.partyName || ""} payment of ${confirmDeletePayment ? formatPKR(confirmDeletePayment.amountPKR) : ""}? This cannot be undone.`}
+        onCancel={() => setConfirmDeletePayment(null)}
+        onConfirm={() => {
+          if (confirmDeletePayment) void deletePayment(confirmDeletePayment.id);
+          setConfirmDeletePayment(null);
+        }}
+      />
     </div>
   );
 }

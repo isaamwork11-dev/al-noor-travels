@@ -254,12 +254,15 @@ export function buildPartyLedger(
     }
     for (const p of data.payments) {
       if (p.type !== "Supplier" || p.partyId !== partyId || !receivedStatus(p)) continue;
+      const fromVendor = p.direction === "in";
       entries.push({
         date: p.paidDate || p.createdAt,
         ref: p.id,
-        description: p.note || "Payment made",
-        debit: p.amountPKR,
-        credit: 0,
+        description: fromVendor
+          ? p.note || "Cash received from vendor (we took from them)"
+          : p.note || "Payment made to vendor (they took from us)",
+        debit: fromVendor ? 0 : p.amountPKR,
+        credit: fromVendor ? p.amountPKR : 0,
       });
     }
   }
@@ -357,6 +360,8 @@ export interface MonthSummary {
   paid: number;
   receivables: number;
   payables: number;
+  /** Cash received FROM vendors (vendor paid us). */
+  receivedFromVendors: number;
 }
 
 /** Financial snapshot for a date range — used for the month's review. */
@@ -393,7 +398,11 @@ export function monthlySummary(from: string, to: string, data: LedgerSource): Mo
     .reduce((a, p) => a + (inRange(p.paidDate || p.createdAt) ? p.amountPKR : 0), 0);
 
   const paid = data.payments
-    .filter((p) => p.type === "Supplier" && receivedStatus(p))
+    .filter((p) => p.type === "Supplier" && receivedStatus(p) && p.direction !== "in")
+    .reduce((a, p) => a + (inRange(p.paidDate || p.createdAt) ? p.amountPKR : 0), 0);
+
+  const receivedFromVendors = data.payments
+    .filter((p) => p.type === "Supplier" && receivedStatus(p) && p.direction === "in")
     .reduce((a, p) => a + (inRange(p.paidDate || p.createdAt) ? p.amountPKR : 0), 0);
 
   return {
@@ -403,5 +412,6 @@ export function monthlySummary(from: string, to: string, data: LedgerSource): Mo
     paid,
     receivables: totalReceivables(data),
     payables: totalPayables(data),
+    receivedFromVendors,
   };
 }

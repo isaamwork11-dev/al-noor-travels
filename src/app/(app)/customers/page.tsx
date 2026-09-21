@@ -6,7 +6,7 @@ import { Plus, Eye, Pencil, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDateTime, formatPKR } from "@/lib/format";
 import { partyBalance } from "@/lib/accounting";
-import { Button, Card, EmptyState, Input, Modal, PageHeader } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, Input, Modal, PageHeader } from "@/components/ui";
 
 export default function CustomersPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -27,6 +27,7 @@ export default function CustomersPage() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<(typeof customers)[number] | null>(null);
   const [form, setForm] = useState({
     name: "",
     mobile: "",
@@ -125,7 +126,7 @@ export default function CustomersPage() {
                         <Eye size={14} /> View
                       </Link>
                       {canEdit && <button type="button" className="ml-2 text-xs text-slate-600 hover:underline" onClick={() => edit(c)}><Pencil size={14} className="inline" /> Edit</button>}
-                      {canDelete && <button type="button" className="ml-2 text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this customer permanently?") && deleteCustomer(c.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                      {canDelete && <button type="button" className="ml-2 text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(c)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
                 ))}
@@ -184,6 +185,17 @@ export default function CustomersPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this customer?"
+        message={`Are you sure you want to delete ${confirmDelete?.name || "this customer"} permanently? This cannot be undone.`}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) void deleteCustomer(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+      />
     </div>
   );
 }

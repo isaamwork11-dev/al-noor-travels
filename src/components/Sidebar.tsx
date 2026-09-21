@@ -5,23 +5,13 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  Plane,
-  FileText,
-  Landmark,
-  Hotel,
-  Bus,
-  Package,
+  BookOpen,
   Wallet,
   Truck,
-  Receipt,
   BarChart3,
-  RotateCcw,
-  UserCog,
-  Settings,
-  ScrollText,
-  ChevronDown,
   Shield,
-  BookOpen,
+  ChevronDown,
+  ClipboardPlus,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "./ui";
@@ -30,88 +20,38 @@ import { COMPANY } from "@/lib/company";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/customers", label: "Customers (CRM)", icon: Users },
+  { href: "/bookings/new", label: "New Entry", icon: ClipboardPlus, highlight: true },
   {
-    label: "Travel Bookings",
+    label: "Bookings",
     icon: BookOpen,
     children: [
       { href: "/bookings", label: "All Bookings" },
-      { href: "/bookings/new", label: "New Booking" },
-    ],
-  },
-  {
-    label: "Air Tickets",
-    icon: Plane,
-    children: [
-      { href: "/air-tickets", label: "All Tickets" },
-      { href: "/air-tickets/new", label: "Add Ticket" },
       { href: "/refunds", label: "Refunds" },
     ],
   },
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/suppliers", label: "Vendors", icon: Truck },
   {
-    label: "Visa Management",
-    icon: FileText,
-    children: [
-      { href: "/visas", label: "All Visas" },
-      { href: "/visas/new", label: "Add Visa" },
-    ],
-  },
-  {
-    label: "Umrah Management",
-    icon: Landmark,
-    children: [
-      { href: "/umrah", label: "Packages" },
-      { href: "/umrah/new", label: "New Package" },
-    ],
-  },
-  {
-    label: "Hotel Management",
-    icon: Hotel,
-    children: [
-      { href: "/hotels", label: "All Hotels" },
-      { href: "/hotels/new", label: "Add Booking" },
-    ],
-  },
-  {
-    label: "Transport Management",
-    icon: Bus,
-    children: [
-      { href: "/transport", label: "All Transfers" },
-      { href: "/transport/new", label: "Add Transfer" },
-    ],
-  },
-  {
-    label: "Tour Packages",
-    icon: Package,
-    children: [{ href: "/tours", label: "All Tours" }],
-  },
-  {
-    label: "Accounts & Finance",
+    label: "Accounts & Money",
     icon: Wallet,
     children: [
       { href: "/accounts", label: "Overview" },
+      { href: "/payments", label: "Payment Entry" },
       { href: "/accounts/cashbook", label: "Cash Book" },
       { href: "/accounts/ledger", label: "Ledgers" },
     ],
   },
-  { href: "/suppliers", label: "Suppliers", icon: Truck },
-  { href: "/vouchers", label: "Vouchers", icon: Receipt },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   {
-    label: "Refunds & Cancellations",
-    icon: RotateCcw,
-    children: [{ href: "/refunds", label: "All Refunds" }],
-  },
-  {
-    label: "User Management",
-    icon: UserCog,
+    label: "Admin",
+    icon: Shield,
     children: [
       { href: "/users", label: "Users" },
       { href: "/users/permissions", label: "Permissions" },
+      { href: "/settings", label: "Settings" },
+      { href: "/activity-log", label: "Activity Log" },
     ],
   },
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/activity-log", label: "Activity Log", icon: ScrollText },
 ];
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -121,17 +61,8 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   const canViewAccounts = isSuperAdmin || !!user?.permissions.viewAccounts;
   const canViewReports = isSuperAdmin || !!user?.permissions.viewReports;
   const canManageUsers = isSuperAdmin || !!user?.permissions.manageUsers;
-  const canViewActivityLog = isSuperAdmin; // per requirement: only admin
-  const canCreateRecords = isSuperAdmin || !!user?.permissions.createRecords;
 
-  const [expanded, setExpanded] = useState<string[]>([
-    "Travel Bookings",
-    "Air Tickets",
-    "Visa Management",
-    "Umrah Management",
-    "Hotel Management",
-    "Transport Management",
-  ]);
+  const [expanded, setExpanded] = useState<string[]>(["Bookings", "Accounts & Money"]);
 
   const toggle = (label: string) => {
     setExpanded((prev) =>
@@ -152,7 +83,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="border-b border-white/10 px-4 py-5">
+        <div className="border-b border-white/10 px-4 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-white/20">
               <img src="/ssb-logo.jpeg" alt={COMPANY.name} className="h-full w-full object-contain" />
@@ -168,10 +99,6 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           {nav.map((item) => {
             if ("href" in item && item.href) {
               if (item.href === "/reports" && !canViewReports) return null;
-              if (item.href === "/settings" && !isSuperAdmin) return null;
-              if (item.href === "/activity-log" && !canViewActivityLog) return null;
-              if (item.href === "/users" && !canManageUsers) return null;
-              if (item.href.startsWith("/accounts") && !canViewAccounts) return null;
 
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -182,9 +109,11 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                   onClick={onClose}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition",
-                    active
-                      ? "bg-blue-600 text-white shadow"
-                      : "text-slate-300 hover:bg-white/10 hover:text-white"
+                    item.highlight
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 font-semibold text-white shadow-md shadow-blue-900/40"
+                      : active
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-slate-300 hover:bg-white/10 hover:text-white"
                   )}
                 >
                   <Icon size={18} />
@@ -195,18 +124,18 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
             const Icon = item.icon;
             const openGroup = expanded.includes(item.label);
+            const isAdminGroup = item.label === "Admin";
 
             const filteredChildren = item.children?.filter((c) => {
-              // Hide create actions from users without create permission.
-              const isAddOrNew =
-                c.href.includes("/new") ||
-                c.label.toLowerCase().includes("add") ||
-                c.label.toLowerCase().includes("new");
-              if (isAddOrNew && !canCreateRecords) return false;
-
-              if (c.href.startsWith("/accounts") && !canViewAccounts) return false;
-              if (c.href.startsWith("/users") && !canManageUsers) return false;
-
+              if (isAdminGroup) {
+                if (c.href.startsWith("/users") && !canManageUsers) return false;
+                if ((c.href === "/settings" || c.href === "/activity-log") && !isSuperAdmin) return false;
+              }
+              if (
+                (c.href.startsWith("/accounts") || c.href.startsWith("/payments")) &&
+                !canViewAccounts
+              )
+                return false;
               return true;
             });
 

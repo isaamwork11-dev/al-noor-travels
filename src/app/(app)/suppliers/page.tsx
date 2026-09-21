@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { formatDateTime, formatPKR } from "@/lib/format";
 import { partyBalance } from "@/lib/accounting";
-import { Button, Card, EmptyState, Input, Modal, PageHeader, Select } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Select } from "@/components/ui";
 
 export default function SuppliersPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -27,6 +27,7 @@ export default function SuppliersPage() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<(typeof suppliers)[number] | null>(null);
   const [form, setForm] = useState({
     name: "",
     type: "Airline",
@@ -114,7 +115,7 @@ export default function SuppliersPage() {
                     <td className="py-2.5 whitespace-nowrap">
                       <Link href="/accounts/ledger" className="mr-2 text-xs text-blue-600 hover:underline">Ledger</Link>
                       {canEdit && <button type="button" className="mr-2 text-xs text-slate-600 hover:underline" onClick={() => edit(s)}><Pencil size={14} className="inline" /> Edit</button>}
-                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this supplier permanently?") && deleteSupplier(s.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(s)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
                 ))}
@@ -168,6 +169,17 @@ export default function SuppliersPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this vendor?"
+        message={`Are you sure you want to delete ${confirmDelete?.name || "this vendor"} permanently? This cannot be undone.`}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) void deleteSupplier(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+      />
     </div>
   );
 }

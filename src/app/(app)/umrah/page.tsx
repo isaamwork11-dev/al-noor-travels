@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { FileDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { generateVoucherPDF } from "@/lib/pdf";
-import { Button, Card, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
 export default function UmrahPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -18,6 +19,7 @@ export default function UmrahPage() {
   const deleteUmrah = useAppStore((s) => s.deleteUmrah);
   const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
+  const [confirmDelete, setConfirmDelete] = useState<(typeof umrahPackages)[number] | null>(null);
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
   const includes = (u: (typeof umrahPackages)[0]) =>
@@ -108,7 +110,7 @@ export default function UmrahPage() {
                     </td>
                     <td className="py-2.5 whitespace-nowrap">
                       {canEdit && <Link href={`/umrah/new?edit=${u.id}`} className="mr-2 text-xs text-slate-600 hover:underline"><Pencil size={14} className="inline" /> Edit</Link>}
-                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => confirm("Delete this Umrah booking permanently?") && deleteUmrah(u.id)}><Trash2 size={14} className="inline" /> Delete</button>}
+                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(u)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
                 ))}
@@ -117,6 +119,17 @@ export default function UmrahPage() {
           </div>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this Umrah package?"
+        message={`Are you sure you want to delete ${confirmDelete?.packageName || "this Umrah"} booking permanently? This cannot be undone.`}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) void deleteUmrah(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+      />
     </div>
   );
 }

@@ -254,3 +254,35 @@ export function PasswordInput({
 export function EmptyState({ message }: { message: string }) {
   return <p className="py-8 text-center text-sm text-slate-400">{message}</p>;
 }
+
+export function ConfirmDialog({
+  open,
+  title = "Are you sure?",
+  message = "This action cannot be undone.",
+  confirmLabel = "Delete",
+  cancelLabel = "Cancel",
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  title?: string;
+  message?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal open={open} onClose={onCancel} title={title}>
+      <p className="mb-5 text-sm text-slate-600">{message}</p>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          {cancelLabel}
+        </Button>
+        <Button type="button" variant="danger" onClick={onConfirm}>
+          {confirmLabel}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
