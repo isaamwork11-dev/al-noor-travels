@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { FileDown, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
-import { generateVoucherPDF } from "@/lib/pdf";
 import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
 export default function UmrahPage() {
@@ -31,22 +30,6 @@ export default function UmrahPage() {
     ]
       .filter(Boolean)
       .join(", ") || "—";
-
-  const download = (u: (typeof umrahPackages)[0]) => {
-    generateVoucherPDF({
-      kind: "umrah",
-      bookingId: u.bookingId,
-      customerName: customerName(u.customerId),
-      lines: [
-        { label: "Package", value: u.packageName },
-        { label: "Includes", value: includes(u) },
-        { label: "Travel", value: formatDate(u.travelDate) },
-        { label: "Return", value: formatDate(u.returnDate) },
-        { label: "Status", value: u.status },
-      ],
-      amount: formatPKR(u.salePrice),
-    });
-  };
 
   return (
     <div>
@@ -81,7 +64,6 @@ export default function UmrahPage() {
                   <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Created</th>
                   <th className="pb-2 font-medium">Updated</th>
-                  <th className="pb-2 font-medium">Voucher</th>
                   <th className="pb-2 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -103,14 +85,24 @@ export default function UmrahPage() {
                     </td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(u.createdAt)}</td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(u.updatedAt || u.createdAt)}</td>
-                    <td className="py-2.5">
-                      <Button variant="ghost" className="!px-2 !py-1" onClick={() => download(u)}>
-                        <FileDown size={14} /> PDF
-                      </Button>
-                    </td>
                     <td className="py-2.5 whitespace-nowrap">
-                      {canEdit && <Link href={`/umrah/new?edit=${u.id}`} className="mr-2 text-xs text-slate-600 hover:underline"><Pencil size={14} className="inline" /> Edit</Link>}
-                      {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(u)}><Trash2 size={14} className="inline" /> Delete</button>}
+                      {canEdit && (
+                        <Link
+                          href={`/umrah/new?edit=${u.id}`}
+                          className="mr-2 text-xs text-slate-600 hover:underline"
+                        >
+                          <Pencil size={14} className="inline" /> Edit
+                        </Link>
+                      )}
+                      {canDelete && (
+                        <button
+                          type="button"
+                          className="text-xs text-rose-600 hover:underline"
+                          onClick={() => setConfirmDelete(u)}
+                        >
+                          <Trash2 size={14} className="inline" /> Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

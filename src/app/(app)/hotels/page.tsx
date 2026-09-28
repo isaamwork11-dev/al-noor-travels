@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { FileDown, Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR, hotelNights } from "@/lib/format";
-import { generateVoucherPDF } from "@/lib/pdf";
+import { openVoucher } from "@/lib/voucher";
 import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
 export default function HotelsPage() {
@@ -21,10 +21,9 @@ export default function HotelsPage() {
   const [confirmDelete, setConfirmDelete] = useState<(typeof hotels)[number] | null>(null);
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
-  const download = (h: (typeof hotels)[0]) => {
+  const open = (h: (typeof hotels)[0]) => {
     const nights = hotelNights(h.checkIn, h.checkOut);
-    const perNight = nights > 0 ? Math.round(h.salePrice / nights) : h.salePrice;
-    generateVoucherPDF({
+    openVoucher({
       kind: "hotel",
       bookingId: h.bookingId,
       customerName: customerName(h.customerId),
@@ -35,8 +34,6 @@ export default function HotelsPage() {
         { label: "Check-in", value: formatDate(h.checkIn) },
         { label: "Check-out", value: formatDate(h.checkOut) },
         { label: "Nights", value: String(nights) },
-        { label: "Per Night", value: formatPKR(perNight) },
-        { label: "Status", value: h.status },
       ],
       amount: formatPKR(h.salePrice),
     });
@@ -100,8 +97,8 @@ export default function HotelsPage() {
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(h.createdAt)}</td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(h.updatedAt || h.createdAt)}</td>
                     <td className="py-2.5">
-                      <Button variant="ghost" className="!px-2 !py-1" onClick={() => download(h)}>
-                        <FileDown size={14} /> PDF
+                      <Button variant="ghost" className="!px-2 !py-1" onClick={() => open(h)}>
+                        <ExternalLink size={14} /> Voucher
                       </Button>
                     </td>
                     <td className="py-2.5 whitespace-nowrap">

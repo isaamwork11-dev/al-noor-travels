@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { FileDown, Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
-import { generateVoucherPDF } from "@/lib/pdf";
+import { openVoucher } from "@/lib/voucher";
 import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
 export default function TransportPage() {
@@ -21,8 +21,8 @@ export default function TransportPage() {
   const [confirmDelete, setConfirmDelete] = useState<(typeof transports)[number] | null>(null);
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
 
-  const download = (t: (typeof transports)[0]) => {
-    generateVoucherPDF({
+  const open = (t: (typeof transports)[0]) => {
+    openVoucher({
       kind: "transport",
       bookingId: t.bookingId,
       customerName: customerName(t.customerId),
@@ -30,12 +30,10 @@ export default function TransportPage() {
         { label: "Type", value: t.type },
         { label: "Pickup", value: t.pickup },
         { label: "Drop-off", value: t.dropoff },
-        { label: "Date", value: formatDate(t.date) },
-        { label: "Time", value: t.time },
+        { label: "Date", value: `${formatDate(t.date)} ${t.time}` },
         { label: "Vehicle", value: t.vehicle },
-        { label: "Driver", value: t.driver },
+        ...(t.driver ? [{ label: "Driver", value: t.driver }] : []),
       ],
-      amount: formatPKR(t.salePrice),
     });
   };
 
@@ -105,8 +103,8 @@ export default function TransportPage() {
                       {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(t)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                     <td className="py-2.5">
-                      <Button variant="ghost" className="!px-2 !py-1" onClick={() => download(t)}>
-                        <FileDown size={14} /> PDF
+                      <Button variant="ghost" className="!px-2 !py-1" onClick={() => open(t)}>
+                        <ExternalLink size={14} /> Voucher
                       </Button>
                     </td>
                   </tr>

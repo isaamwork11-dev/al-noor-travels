@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BadgeCheck, Bus, FileText, Hotel, Plane, Plus, Trash2 } from "lucide-react";
+import { Bus, FileText, Hotel, Plane, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import {
   computeBookingTotals,
@@ -63,7 +63,6 @@ const KIND_META: { kind: BookingServiceKind; label: string; icon: React.Componen
   { kind: "visa", label: "Visa", icon: FileText, color: "from-emerald-500 to-emerald-600 shadow-emerald-200" },
   { kind: "hotel", label: "Hotel", icon: Hotel, color: "from-violet-500 to-violet-600 shadow-violet-200" },
   { kind: "transport", label: "Transport", icon: Bus, color: "from-orange-500 to-orange-600 shadow-orange-200" },
-  { kind: "umrah", label: "Umrah", icon: BadgeCheck, color: "from-cyan-500 to-cyan-600 shadow-cyan-200" },
 ];
 
 export default function NewBookingPage() {
@@ -165,8 +164,8 @@ export default function NewBookingPage() {
       <PageHeader title={existing ? "Edit Travel Booking" : "New Entry"} breadcrumb="Home / Bookings / New Entry" />
 
       <form onSubmit={onSubmit} className="space-y-4">
-        <Card title="1 · What are you entering? (Ticket / Visa / Hotel / Transport / Umrah)">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Card title="1 · What are you entering? (Ticket / Visa / Hotel / Transport)">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {KIND_META.map(({ kind, label, icon: Icon, color }) => (
               <button
                 key={kind}
@@ -209,7 +208,7 @@ export default function NewBookingPage() {
               label="Booking Title"
               value={header.title}
               onChange={(e) => setHeader({ ...header, title: e.target.value })}
-              placeholder="e.g. Umrah Family Package"
+              placeholder="e.g. Dubai Family Trip"
             />
             <Select
               label="Status"
@@ -246,7 +245,7 @@ export default function NewBookingPage() {
 
         {services.length === 0 && !existing && (
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-            No service added yet — pick a category above (Ticket, Visa, Hotel, Transport, Umrah) to start the entry.
+            No service added yet — pick a category above (Ticket, Visa, Hotel, Transport) to start the entry.
           </div>
         )}
 
@@ -315,48 +314,6 @@ export default function NewBookingPage() {
                   onChange={(e) =>
                     updateService(si, {
                       details: { ...svc.details, country: e.target.value },
-                    })
-                  }
-                />
-              </div>
-            )}
-
-            {svc.kind === "umrah" && (
-              <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <Input
-                  label="Package Name"
-                  value={svc.details.packageName || ""}
-                  onChange={(e) =>
-                    updateService(si, {
-                      details: { ...svc.details, packageName: e.target.value },
-                      title: e.target.value || svc.title,
-                    })
-                  }
-                />
-                <Input
-                  label="Hotel / Makkah-Madinah"
-                  value={svc.details.hotelName || ""}
-                  onChange={(e) =>
-                    updateService(si, {
-                      details: { ...svc.details, hotelName: e.target.value },
-                    })
-                  }
-                />
-                <Input
-                  label="City"
-                  value={svc.details.city || ""}
-                  onChange={(e) =>
-                    updateService(si, {
-                      details: { ...svc.details, city: e.target.value },
-                    })
-                  }
-                />
-                <Input
-                  label="Includes Visa"
-                  value={svc.details.includesVisa || ""}
-                  onChange={(e) =>
-                    updateService(si, {
-                      details: { ...svc.details, includesVisa: e.target.value },
                     })
                   }
                 />
