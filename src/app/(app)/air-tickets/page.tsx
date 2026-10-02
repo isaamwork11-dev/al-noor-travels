@@ -12,7 +12,6 @@ export default function AirTicketsPage() {
   const airTickets = useAppStore((s) => s.airTickets);
   const customers = useAppStore((s) => s.customers);
   const suppliers = useAppStore((s) => s.suppliers);
-  const refunds = useAppStore((s) => s.refunds);
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
   const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
@@ -23,8 +22,6 @@ export default function AirTicketsPage() {
 
   const customerName = (id: string) => customers.find((c) => c.id === id)?.name || "—";
   const supplierName = (id: string) => suppliers.find((s) => s.id === id)?.name || "—";
-
-  const refundOf = (ticketId: string) => refunds.find((r) => r.referenceId === ticketId);
 
   return (
     <div>
@@ -59,7 +56,6 @@ export default function AirTicketsPage() {
                   {showCost && <th className="pb-2 font-medium">Cost</th>}
                   <th className="pb-2 font-medium">Sale</th>
                   {showProfit && <th className="pb-2 font-medium">Profit</th>}
-                  <th className="pb-2 font-medium">Refund</th>
                   <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Created</th>
                   <th className="pb-2 font-medium">Updated</th>
@@ -67,9 +63,7 @@ export default function AirTicketsPage() {
                 </tr>
               </thead>
               <tbody>
-                {airTickets.map((t) => {
-                  const refund = refundOf(t.id);
-                  return (
+                {airTickets.map((t) => (
                   <tr key={t.id} className="border-b border-slate-50 last:border-0">
                     <td className="py-2.5">
                       <Link href={`/customers/${t.customerId}`} className="font-medium text-blue-700 hover:underline">
@@ -99,21 +93,6 @@ export default function AirTicketsPage() {
                       <td className="py-2.5 font-medium text-emerald-700">{formatPKR(t.profit)}</td>
                     )}
                     <td className="py-2.5">
-                      {refund ? (
-                        <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                          Refunded · {formatPKR(refund.refundAmount)}
-                        </span>
-                      ) : t.refundable ? (
-                        <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
-                          Refundable
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
-                          Non-refundable
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2.5">
                       <StatusBadge status={t.status} />
                     </td>
                     <td className="py-2.5 text-xs text-slate-500">{formatDateTime(t.createdAt)}</td>
@@ -123,8 +102,7 @@ export default function AirTicketsPage() {
                       {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(t)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>
                   </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </div>

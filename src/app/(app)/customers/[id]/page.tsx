@@ -10,7 +10,7 @@ import { generateLedgerPDF } from "@/lib/pdf";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
 import { FileDown, HandCoins } from "lucide-react";
 
-const tabs = ["Tickets", "Visas", "Hotels", "Umrah", "Transport", "Payments", "Refunds"] as const;
+const tabs = ["Tickets", "Visas", "Hotels", "Umrah", "Transport", "Payments"] as const;
 
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
@@ -121,9 +121,8 @@ export default function CustomerDetailPage() {
       Umrah: umrahPackages.filter((u) => u.customerId === customer.id),
       Transport: transports.filter((t) => t.customerId === customer.id),
       Payments: payments.filter((p) => p.type === "Customer" && p.partyId === customer.id),
-      Refunds: refunds.filter((r) => r.customerId === customer.id),
     };
-  }, [customer, airTickets, visas, hotels, umrahPackages, transports, payments, refunds]);
+  }, [customer, airTickets, visas, hotels, umrahPackages, transports, payments]);
 
   if (!customer) {
     return (
@@ -159,7 +158,11 @@ export default function CustomerDetailPage() {
       </div>
 
       {ledger && (
-        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs text-slate-500">Opening Balance</p>
+            <p className="mt-1 text-lg font-bold text-slate-800">{formatPKR(ledger.opening)}</p>
+          </div>
           <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
             <p className="text-xs text-slate-500">Total Bookings (Debit)</p>
             <p className="mt-1 text-lg font-bold text-blue-800">{formatPKR(ledger.totalDebit)}</p>
@@ -177,6 +180,40 @@ export default function CustomerDetailPage() {
             <p className="mt-1 text-lg font-bold text-slate-800">{ledger.rows.length}</p>
           </div>
         </div>
+      )}
+
+      {ledger && (
+        <Card title="Account Statement" className="mb-5">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs text-slate-500">
+                  <th className="pb-2 font-medium">Ref</th>
+                  <th className="pb-2 font-medium">Date</th>
+                  <th className="pb-2 font-medium">Particulars</th>
+                  <th className="pb-2 font-medium">Debit</th>
+                  <th className="pb-2 font-medium">Credit</th>
+                  <th className="pb-2 font-medium">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledger.rows.map((e, i) => (
+                  <tr
+                    key={`${e.ref}-${i}`}
+                    className={`border-b border-slate-50 last:border-0 ${e.ref === "OPEN" ? "bg-slate-50 font-medium" : ""}`}
+                  >
+                    <td className="py-2.5 font-medium text-blue-700">{e.ref}</td>
+                    <td className="py-2.5 text-slate-600">{formatDate(e.date)}</td>
+                    <td className="py-2.5 text-slate-700">{e.description}</td>
+                    <td className="py-2.5 font-semibold text-rose-700">{e.debit ? formatPKR(e.debit) : "—"}</td>
+                    <td className="py-2.5 font-semibold text-emerald-700">{e.credit ? formatPKR(e.credit) : "—"}</td>
+                    <td className="py-2.5 font-medium text-slate-800">{formatPKR(e.balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       <div className="mb-5 grid gap-4 lg:grid-cols-3">
@@ -206,6 +243,10 @@ export default function CustomerDetailPage() {
               <div>
                 <dt className="text-xs text-slate-500">Address</dt>
                 <dd className="text-slate-700">{customer.address || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Opening Outstanding</dt>
+                <dd className="font-medium text-slate-800">{formatPKR(customer.outstanding)}</dd>
               </div>
               <div>
                 <dt className="text-xs text-slate-500">Outstanding (computed)</dt>
@@ -350,20 +391,6 @@ export default function CustomerDetailPage() {
                 p.status,
               ])}
               headers={["ID", "Amount", "Due", "Paid", "Status"]}
-            />
-          )}
-          {tab === "Refunds" && (
-            <HistoryTable
-              empty="No refunds."
-              rows={history!.Refunds.map((r) => [
-                r.referenceId,
-                r.refundType,
-                formatPKR(r.originalAmount),
-                formatPKR(r.refundAmount),
-                formatDate(r.createdAt),
-                r.status,
-              ])}
-              headers={["Ticket", "Type", "Original", "Refunded", "Date", "Status"]}
             />
           )}
         </Card>

@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { formatDate, formatPKR } from "@/lib/format";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 
-const tabs = ["Sales", "Profit", "Refunds", "Visas", "Customers", "Suppliers"] as const;
+const tabs = ["Sales", "Profit", "Visas", "Customers", "Suppliers"] as const;
 
 export default function ReportsPage() {
   const user = useAppStore((s) => s.currentUser);
@@ -17,7 +17,6 @@ export default function ReportsPage() {
   const transports = useAppStore((s) => s.transports);
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const tourPackages = useAppStore((s) => s.tourPackages);
-  const refunds = useAppStore((s) => s.refunds);
 
   const [tab, setTab] = useState<(typeof tabs)[number]>("Sales");
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
@@ -80,24 +79,6 @@ export default function ReportsPage() {
                 ...(showCost ? [formatPKR(s.cost)] : []),
                 formatPKR(s.sales),
                 ...(showProfit ? [formatPKR(s.sales - s.cost)] : []),
-              ])}
-            />
-          )
-        )}
-
-        {tab === "Refunds" && (
-          refunds.length === 0 ? (
-            <EmptyState message="No refunds recorded." />
-          ) : (
-            <ReportTable
-              headers={["Booking", "Customer", "Type", "Refund", "Status", "Date"]}
-              rows={refunds.map((r) => [
-                r.bookingId,
-                r.customerName,
-                r.refundType,
-                formatPKR(r.refundAmount),
-                r.status,
-                formatDate(r.createdAt),
               ])}
             />
           )

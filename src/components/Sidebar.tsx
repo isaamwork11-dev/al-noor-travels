@@ -26,7 +26,6 @@ const nav = [
     icon: BookOpen,
     children: [
       { href: "/bookings", label: "All Bookings" },
-      { href: "/refunds", label: "Refunds" },
     ],
   },
   { href: "/customers", label: "Customers", icon: Users },

@@ -242,6 +242,19 @@ export function buildPartyLedger(
     for (const b of data.travelBookings) {
       if (!isActive(b.status)) continue;
       for (const svc of b.services) {
+        if (svc.kind === "ticket" && svc.tickets?.length) {
+          for (const ticket of svc.tickets) {
+            if (ticket.supplierId !== partyId) continue;
+            entries.push({
+              date: b.createdAt,
+              ref: b.bookingId,
+              description: `Ticket cost — ${ticket.passengerName || ticket.sector || svc.title}`,
+              debit: 0,
+              credit: ticket.costPKR,
+            });
+          }
+          continue;
+        }
         if (!svc.supplierId || svc.supplierId !== partyId) continue;
         entries.push({
           date: b.createdAt,
@@ -267,18 +280,37 @@ export function buildPartyLedger(
     }
   }
 
-  const filtered = entries
-    .filter((e) => inRange(e.date, from, to))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = entries.sort((a, b) => a.date.localeCompare(b.date));
+  const before = from ? sorted.filter((e) => e.date < from) : [];
+  const period = sorted.filter((e) => inRange(e.date, from, to));
 
-  const openingRaw = party?.outstanding ?? 0;
-  const opening = inRange(party?.createdAt ?? "", from, to) ? 0 : openingRaw;
+  const roll = (start: number, e: PartyEntry) =>
+    partyType === "Customer" ? start + e.debit - e.credit : start + e.credit - e.debit;
+
+  /** Seeded opening outstanding, plus any activity before the statement period. */
+  let opening = party?.outstanding ?? 0;
+  for (const e of before) opening = roll(opening, e);
+
+  const openingDebit = opening > 0 && partyType === "Customer" ? opening : opening < 0 && partyType === "Supplier" ? Math.abs(opening) : 0;
+  const openingCredit = opening > 0 && partyType === "Supplier" ? opening : opening < 0 && partyType === "Customer" ? Math.abs(opening) : 0;
+
+  const openingRow: LedgerRow = {
+    date: from || party?.createdAt || "",
+    ref: "OPEN",
+    description: "Opening Balance",
+    debit: openingDebit,
+    credit: openingCredit,
+    balance: opening,
+  };
 
   let balance = opening;
-  const rows: LedgerRow[] = filtered.map((e) => {
-    balance = partyType === "Customer" ? balance + e.debit - e.credit : balance + e.credit - e.debit;
-    return { ...e, balance };
-  });
+  const rows: LedgerRow[] = [
+    openingRow,
+    ...period.map((e) => {
+      balance = roll(balance, e);
+      return { ...e, balance };
+    }),
+  ];
 
   const totalDebit = rows.reduce((a, r) => a + r.debit, 0);
   const totalCredit = rows.reduce((a, r) => a + r.credit, 0);
@@ -290,7 +322,7 @@ export function buildPartyLedger(
     rows,
     totalDebit,
     totalCredit,
-    closing: rows.length ? rows[rows.length - 1].balance : opening,
+    closing: rows[rows.length - 1]?.balance ?? opening,
   };
 }
 

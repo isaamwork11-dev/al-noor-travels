@@ -99,6 +99,7 @@ export function generateLedgerPDF(
   doc.setFontSize(10);
   const periodLine = `Period: ${from ? formatDate(from) : "Beginning"} — ${to ? formatDate(to) : "Today"}`;
   doc.text(periodLine, 14, 52);
+  doc.text(`Opening Balance: ${money(ledger.opening)}`, 14, 58);
 
   const body = ledger.rows.map((r, i) => [
     String(i + 1),
@@ -111,7 +112,7 @@ export function generateLedgerPDF(
   ]);
 
   autoTable(doc, {
-    startY: 58,
+    startY: 64,
     head: [["#", "Date", "Ref", "Particulars", "Debit", "Credit", "Balance"]],
     body,
     theme: "grid",

@@ -113,7 +113,9 @@ export default function SuppliersPage() {
                     <td className="py-2.5 text-slate-500">{formatDateTime(s.createdAt)}</td>
                     <td className="py-2.5 text-slate-500">{formatDateTime(s.updatedAt || s.createdAt)}</td>
                     <td className="py-2.5 whitespace-nowrap">
-                      <Link href="/accounts/ledger" className="mr-2 text-xs text-blue-600 hover:underline">Ledger</Link>
+                      <Link href={`/suppliers/${s.id}`} className="mr-2 text-xs text-blue-600 hover:underline">
+                        Statement
+                      </Link>
                       {canEdit && <button type="button" className="mr-2 text-xs text-slate-600 hover:underline" onClick={() => edit(s)}><Pencil size={14} className="inline" /> Edit</button>}
                       {canDelete && <button type="button" className="text-xs text-rose-600 hover:underline" onClick={() => setConfirmDelete(s)}><Trash2 size={14} className="inline" /> Delete</button>}
                     </td>

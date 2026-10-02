@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatDateTime, formatPKR, todayISO } from "@/lib/format";
+import { formatDate, formatPKR, todayISO } from "@/lib/format";
 import { bookingMoney } from "@/lib/accounting";
 import { Button, Card, EmptyState, PageHeader, Select, StatusBadge } from "@/components/ui";
 
@@ -24,6 +24,7 @@ interface Row {
   amount: number;
   status: string;
   detailHref?: string;
+  editHref?: string;
 }
 
 export default function BookingsPage() {
@@ -40,6 +41,7 @@ export default function BookingsPage() {
   const refunds = useAppStore((s) => s.refunds);
 
   const canCreate = user?.role === "super_admin" || !!user?.permissions.createRecords;
+  const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
 
   const monthStart = () => {
     const now = new Date();
@@ -83,6 +85,7 @@ export default function BookingsPage() {
         returnLabel: t.tripType === "Return" && t.returnDate ? formatDate(t.returnDate) : "—",
         amount: t.totalAmount || t.salePrice,
         status: t.status,
+        editHref: `/air-tickets/new?edit=${t.id}`,
       })),
       ...visas.map((v) => ({
         id: v.id,
@@ -97,6 +100,7 @@ export default function BookingsPage() {
         returnLabel: v.approvalDate ? formatDate(v.approvalDate) : "—",
         amount: v.salePrice,
         status: v.status,
+        editHref: `/visas/new?edit=${v.id}`,
       })),
       ...hotels.map((h) => ({
         id: h.id,
@@ -111,6 +115,7 @@ export default function BookingsPage() {
         returnLabel: formatDate(h.checkOut),
         amount: h.salePrice,
         status: h.status,
+        editHref: `/hotels/new?edit=${h.id}`,
       })),
       ...transports.map((t) => ({
         id: t.id,
@@ -125,6 +130,7 @@ export default function BookingsPage() {
         returnLabel: "—",
         amount: t.salePrice,
         status: t.status,
+        editHref: `/transport/new?edit=${t.id}`,
       })),
       ...umrahPackages.map((u) => ({
         id: u.id,
@@ -139,6 +145,7 @@ export default function BookingsPage() {
         returnLabel: formatDate(u.returnDate),
         amount: u.salePrice,
         status: u.status,
+        editHref: `/umrah/new?edit=${u.id}`,
       })),
       ...tourPackages.map((t) => ({
         id: t.id,
@@ -168,6 +175,7 @@ export default function BookingsPage() {
         amount: b.totalSale,
         status: b.status,
         detailHref: `/bookings/${b.id}`,
+        editHref: `/bookings/new?edit=${b.id}`,
       })),
     ];
 
@@ -259,7 +267,7 @@ export default function BookingsPage() {
                   <th className="pb-2 font-medium">Received</th>
                   <th className="pb-2 font-medium">Balance</th>
                   <th className="pb-2 font-medium">Status</th>
-                  <th className="pb-2 font-medium"></th>
+                  <th className="pb-2 font-medium">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -294,7 +302,13 @@ export default function BookingsPage() {
                       <td className="py-2.5">
                         <StatusBadge status={r.status} />
                       </td>
-                      <td className="py-2.5 text-xs text-slate-400">{formatDateTime(r.entryDate)}</td>
+                      <td className="py-2.5 whitespace-nowrap">
+                        {canEdit && r.editHref && (
+                          <Link href={r.editHref} className="text-xs text-slate-600 hover:underline">
+                            <Pencil size={14} className="inline" /> Edit
+                          </Link>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

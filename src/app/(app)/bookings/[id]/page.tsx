@@ -23,6 +23,7 @@ export default function BookingDetailPage({
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
   const canDelete = user?.role === "super_admin" || !!user?.permissions.deleteRecords;
+  const canEdit = user?.role === "super_admin" || !!user?.permissions.editRecords;
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -74,6 +75,11 @@ export default function BookingDetailPage({
           <Link href="/bookings">
             <Button variant="secondary">Back</Button>
           </Link>
+          {canEdit && (
+            <Link href={`/bookings/new?edit=${booking.id}`}>
+              <Button variant="secondary">Edit</Button>
+            </Link>
+          )}
           {canDelete && (
             <Button variant="danger" onClick={() => setConfirmOpen(true)} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete"}

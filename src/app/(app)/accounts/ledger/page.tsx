@@ -167,7 +167,10 @@ export default function LedgerPage() {
                   </thead>
                   <tbody>
                     {ledger.rows.map((e, i) => (
-                      <tr key={`${e.ref}-${i}`} className="border-b border-slate-50 last:border-0">
+                      <tr
+                        key={`${e.ref}-${i}`}
+                        className={`border-b border-slate-50 last:border-0 ${e.ref === "OPEN" ? "bg-slate-50 font-medium" : ""}`}
+                      >
                         <td className="py-2.5 font-medium text-blue-700">{e.ref}</td>
                         <td className="py-2.5 text-slate-600">{formatDate(e.date)}</td>
                         <td className="py-2.5 text-slate-700">{e.description}</td>
