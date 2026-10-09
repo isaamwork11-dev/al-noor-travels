@@ -23,19 +23,19 @@ export function Header({ onMenu }: { onMenu: () => void }) {
     const items: { type: string; label: string; href: string }[] = [];
     customers.forEach((c) => {
       if (
-        c.name.toLowerCase().includes(term) ||
-        c.mobile.includes(term) ||
-        c.passportNumber.toLowerCase().includes(term) ||
-        c.customerId.toLowerCase().includes(term)
+        c.name?.toLowerCase().includes(term) ||
+        c.mobile?.includes(term) ||
+        c.passportNumber?.toLowerCase().includes(term) ||
+        c.customerId?.toLowerCase().includes(term)
       ) {
         items.push({ type: "Customer", label: `${c.name} (${c.customerId})`, href: `/customers/${c.id}` });
       }
     });
     airTickets.forEach((t) => {
       if (
-        t.bookingId.toLowerCase().includes(term) ||
-        t.pnr.toLowerCase().includes(term) ||
-        t.passengerName.toLowerCase().includes(term)
+        t.bookingId?.toLowerCase().includes(term) ||
+        t.pnr?.toLowerCase().includes(term) ||
+        t.passengerName?.toLowerCase().includes(term)
       ) {
         items.push({
           type: "Ticket",

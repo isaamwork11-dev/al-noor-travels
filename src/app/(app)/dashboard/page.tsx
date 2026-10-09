@@ -93,7 +93,7 @@ export default function DashboardPage() {
   const transports = useAppStore((s) => s.transports);
   const umrahPackages = useAppStore((s) => s.umrahPackages);
   const tourPackages = useAppStore((s) => s.tourPackages);
-const travelBookings = useAppStore((s) => s.travelBookings);
+  const travelBookings = useAppStore((s) => s.travelBookings) ?? [];
   const payments = useAppStore((s) => s.payments);
   const refunds = useAppStore((s) => s.refunds);
 
@@ -171,21 +171,21 @@ const allBookings: DashboardRow[] = [
       icon: "umrah" as const,
     })),
     ...travelBookings.flatMap((b) =>
-      b.services.map((service) => ({
+      (b.services ?? []).map((service) => ({
         bookingId: b.bookingId,
         customer: getCustomerName(b.customerId),
-        service: `${service.kind.toUpperCase()} — ${service.title}`,
+        service: `${(service.kind || "service").toUpperCase()} — ${service.title || ""}`,
         date:
           service.kind === "hotel"
-            ? service.details.checkIn || b.travelDate
+            ? service.details?.checkIn || b.travelDate
             : service.kind === "transport"
-              ? service.details.date || b.travelDate
+              ? service.details?.date || b.travelDate
               : service.kind === "ticket"
                 ? service.tickets?.map((ticket) => ticket.travelDate).filter(Boolean).sort()[0] || b.travelDate
                 : b.travelDate,
         returnDate:
           service.kind === "hotel"
-            ? service.details.checkOut || b.returnDate
+            ? service.details?.checkOut || b.returnDate
             : service.kind === "ticket"
               ? service.tickets?.map((ticket) => ticket.returnDate).find(Boolean) || b.returnDate
               : b.returnDate,
@@ -195,14 +195,16 @@ const allBookings: DashboardRow[] = [
     ),
   ];
 
+  const byDate = (a: DashboardRow, b: DashboardRow) => (a.date || "").localeCompare(b.date || "");
+
   const upcoming = allBookings
-    .filter((b) => b.date >= todayISO() && !["Completed", "Cancelled", "Refunded"].includes(b.status))
-    .sort((a, b) => a.date.localeCompare(b.date))
+    .filter((b) => (b.date || "") >= todayISO() && !["Completed", "Cancelled", "Refunded"].includes(b.status))
+    .sort(byDate)
     .slice(0, 8);
 
   const recent = allBookings
     .filter((b) => !["Cancelled", "Refunded"].includes(b.status))
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort((a, b) => byDate(b, a))
     .slice(0, 8);
 
   const pendingPayments = payments.filter((p) => p.status === "Pending").slice(0, 6);

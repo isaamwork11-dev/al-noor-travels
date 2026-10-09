@@ -241,7 +241,7 @@ export function buildPartyLedger(
     }
     for (const b of data.travelBookings) {
       if (!isActive(b.status)) continue;
-      for (const svc of b.services) {
+      for (const svc of b.services ?? []) {
         if (svc.kind === "ticket" && svc.tickets?.length) {
           for (const ticket of svc.tickets) {
             if (ticket.supplierId !== partyId) continue;
