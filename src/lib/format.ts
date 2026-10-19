@@ -24,13 +24,37 @@ export function nextId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export function nextBookingId(existing: string[]): string {
+/** Short sequential refs: PAY-000124, BK-000150 */
+export function nextSequentialId(prefix: string, existing: string[], width = 6): string {
   const nums = existing
-    .map((id) => parseInt(id.replace(/\D/g, ""), 10))
+    .map((id) => {
+      const match = String(id).match(new RegExp(`^${prefix}-(\\d+)$`, "i"));
+      return match ? parseInt(match[1], 10) : NaN;
+    })
     .filter((n) => !Number.isNaN(n));
-  const max = nums.length ? Math.max(...nums) : 100;
-  return `BK-${String(max + 1).padStart(6, "0")}`;
+  const max = nums.length ? Math.max(...nums) : 0;
+  return `${prefix}-${String(max + 1).padStart(width, "0")}`;
 }
+
+/** Compact display for payment / ledger refs (hides long random ids). */
+export function displayRef(id: string): string {
+  if (!id) return "—";
+  if (/^(PAY|BK|CUS|OPEN)-\d+$/i.test(id) || id === "OPEN") return id.toUpperCase();
+  const tail = id.replace(/^p-/i, "").replace(/-/g, "").slice(-6).toUpperCase();
+  return tail ? `PAY-${tail}` : id;
+}
+
+export function sortByName<T extends { name: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base", numeric: true })
+  );
+}
+
+export function nextBookingId(existing: string[]): string {
+  return nextSequentialId("BK", existing, 6);
+}
+
+const MONTHS_SHORT = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
 export function todayISO(): string {
   const d = new Date();
@@ -63,20 +87,20 @@ export function sarToPkr(costSAR: number, exchangeRate: number): number {
 function datePartToDMY(date: string): string | null {
   const match = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!match) return null;
-  return `${match[3]}/${match[2]}/${match[1]}`;
+  const month = MONTHS_SHORT[Number(match[2]) - 1];
+  if (!month) return null;
+  return `${match[3]}-${month}-${match[1]}`;
 }
 
 export function formatDate(date: string): string {
   if (!date) return "—";
-  const dmy = datePartToDMY(date);
-  if (dmy) return dmy;
+  const labelled = datePartToDMY(date);
+  if (labelled) return labelled;
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return date;
-  return d.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = MONTHS_SHORT[d.getMonth()];
+  return `${day}-${month}-${d.getFullYear()}`;
 }
 
 /** Night count between two dates (check-out minus check-in). Returns 0 when
@@ -95,26 +119,14 @@ export function hotelNights(checkIn: string, checkOut: string): number {
 /** Shows date + time when a full ISO timestamp is available. */
 export function formatDateTime(date: string): string {
   if (!date) return "—";
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return date;
-  const hasTime = date.includes("T") || date.includes(":");
-  if (!hasTime) return formatDate(date);
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const dateLabel = formatDate(date);
+  const timeMatch = date.match(/T(\d{2}):(\d{2})/);
+  if (timeMatch) return `${dateLabel} ${timeMatch[1]}:${timeMatch[2]}`;
+  return dateLabel;
 }
 
 export function formatDateLong(): string {
-  return new Date().toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return formatDate(todayISO());
 }
 
 export function canViewFinancials(user: AppUser | null): boolean {

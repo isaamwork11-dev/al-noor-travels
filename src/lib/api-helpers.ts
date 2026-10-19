@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Model } from "mongoose";
 import { MissingMongoUriError } from "./db";
-import { calcProfit, nextBookingId, nextId, sarToPkr, toPKR } from "./format";
+import { calcProfit, nextBookingId, nextId, nextSequentialId, sarToPkr, toPKR } from "./format";
 import { normalizeTravelBooking } from "./booking-calc";
 import type {
   BookingServiceItem,
@@ -282,6 +282,17 @@ export async function nextBookingIdFromDb(): Promise<string> {
     }
   }
   return nextBookingId(existing);
+}
+
+export async function nextPaymentIdFromDb(): Promise<string> {
+  const docs = await COLLECTIONS.payments.model
+    .find({}, { id: 1, _id: 0 })
+    .lean<{ id?: string }[]>();
+  return nextSequentialId(
+    "PAY",
+    docs.map((doc) => doc.id || ""),
+    6
+  );
 }
 
 export async function logActivity(

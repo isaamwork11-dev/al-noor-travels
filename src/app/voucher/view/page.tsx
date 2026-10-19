@@ -98,22 +98,53 @@ function VoucherViewInner() {
             </div>
           </div>
 
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="bg-blue-600 text-white">
-                <th className="px-5 py-2 font-medium">Field</th>
-                <th className="px-5 py-2 font-medium">Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payload.lines.map((line) => (
-                <tr key={line.label} className="border-b border-slate-100">
-                  <td className="px-5 py-2.5 font-medium text-slate-700">{line.label}</td>
-                  <td className="px-5 py-2.5 text-slate-800">{line.value}</td>
+          {payload.items && payload.items.length > 0 ? (
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="bg-blue-600 text-white">
+                  <th className="px-5 py-2 font-medium">Details</th>
+                  <th className="px-5 py-2 text-right font-medium">Amount</th>
                 </tr>
+              </thead>
+              <tbody>
+                {payload.items.map((item, index) => (
+                  <tr key={`${item.details}-${index}`} className="border-b border-slate-100">
+                    <td className="px-5 py-2.5 text-slate-800">{item.details}</td>
+                    <td className="px-5 py-2.5 text-right font-medium text-slate-800">
+                      {item.amount || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="bg-blue-600 text-white">
+                  <th className="px-5 py-2 font-medium">Details</th>
+                  <th className="px-5 py-2 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {payload.lines.map((line) => (
+                  <tr key={line.label} className="border-b border-slate-100">
+                    <td className="px-5 py-2.5 font-medium text-slate-700">{line.label}</td>
+                    <td className="px-5 py-2.5 text-slate-800">{line.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {payload.items && payload.items.length > 0 && payload.lines.length > 0 && (
+            <div className="border-t border-slate-100 px-5 py-3 text-sm text-slate-600">
+              {payload.lines.map((line) => (
+                <p key={line.label}>
+                  <span className="text-slate-400">{line.label}:</span> {line.value}
+                </p>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
 
           {(payload.amount || payload.note) && (
             <div className="space-y-1 px-5 py-4">

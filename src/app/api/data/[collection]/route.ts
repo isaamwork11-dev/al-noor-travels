@@ -11,6 +11,7 @@ import {
   jsonError,
   logActivity,
   nextBookingIdFromDb,
+  nextPaymentIdFromDb,
   sanitize,
   sanitizeAll,
   stripProtectedFields,
@@ -152,7 +153,12 @@ export async function POST(request: NextRequest, ctx: Context) {
     const payload = stripProtectedFields(body);
     const record = await applyDerivedFields(collection, payload);
 
-    record.id = typeof record.id === "string" && record.id ? record.id : nextId(config.idPrefix);
+    record.id =
+      typeof record.id === "string" && record.id
+        ? record.id
+        : collection === "payments"
+          ? await nextPaymentIdFromDb()
+          : nextId(config.idPrefix);
     const stamp = nowISO();
     record.createdAt =
       typeof record.createdAt === "string" && record.createdAt

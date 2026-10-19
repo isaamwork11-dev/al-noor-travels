@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { formatDate, todayISO } from "@/lib/format";
 
 export function cn(...inputs: (string | false | undefined | null)[]) {
   return clsx(inputs);
@@ -101,12 +102,7 @@ export function PageHeader({
         <p className="mt-0.5 text-xs text-slate-500">{breadcrumb || `Home / ${title}`}</p>
       </div>
       <p className="text-sm font-medium text-slate-600">
-        {new Date().toLocaleDateString("en-GB", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })}
+        {formatDate(todayISO())}
       </p>
     </div>
   );

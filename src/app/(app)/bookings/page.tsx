@@ -262,7 +262,7 @@ export default function BookingsPage() {
                   <th className="pb-2 font-medium">Passenger / Guest</th>
                   <th className="pb-2 font-medium">Travel / Check-in</th>
                   <th className="pb-2 font-medium">Return / Check-out</th>
-                  <th className="pb-2 font-medium">Particulars</th>
+                  <th className="pb-2 font-medium">Details</th>
                   <th className="pb-2 font-medium">Total</th>
                   <th className="pb-2 font-medium">Received</th>
                   <th className="pb-2 font-medium">Balance</th>

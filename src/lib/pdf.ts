@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { COMPANY, companyTelLine } from "./company";
-import { formatDate } from "./format";
+import { displayRef, formatDate } from "./format";
 import type { PartyLedger } from "./accounting";
 import { VOUCHER_TITLES, type VoucherPayload } from "./voucher";
 
@@ -50,13 +50,17 @@ export function generateVoucherPDF(payload: VoucherPayload) {
   doc.setFontSize(9);
   doc.text(`Booking: ${payload.bookingId}`, 14, 52);
 
+  const hasItems = (payload.items?.length ?? 0) > 0;
   autoTable(doc, {
     startY: 56,
-    head: [["Field", "Details"]],
-    body: payload.lines.map((l) => [l.label, l.value]),
+    head: hasItems ? [["Details", "Amount"]] : [["Details", ""]],
+    body: hasItems
+      ? (payload.items ?? []).map((item) => [item.details, item.amount || "—"])
+      : payload.lines.map((l) => [l.label, l.value]),
     theme: "grid",
     headStyles: { fillColor: [37, 99, 235] },
-    styles: { fontSize: 9 },
+    styles: { fontSize: 8 },
+    columnStyles: hasItems ? { 1: { halign: "right", cellWidth: 40 } } : {},
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,7 +108,7 @@ export function generateLedgerPDF(
   const body = ledger.rows.map((r, i) => [
     String(i + 1),
     formatDate(r.date),
-    r.ref,
+    displayRef(r.ref),
     r.description,
     r.debit ? money(r.debit) : "—",
     r.credit ? money(r.credit) : "—",
@@ -113,7 +117,7 @@ export function generateLedgerPDF(
 
   autoTable(doc, {
     startY: 64,
-    head: [["#", "Date", "Ref", "Particulars", "Debit", "Credit", "Balance"]],
+    head: [["#", "Date", "Ref", "Details", "Debit", "Credit", "Balance"]],
     body,
     theme: "grid",
     headStyles: { fillColor: [15, 28, 63] },
@@ -139,4 +143,28 @@ export function generateLedgerPDF(
 
   const safe = ledger.partyName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   doc.save(`statement-${safe}-${from || "all"}-${to || "today"}.pdf`);
+}
+
+export function openLedgerPdfInTab(
+  ledger: PartyLedger,
+  from: string,
+  to: string
+) {
+  const key = `ssb-statement:${crypto.randomUUID()}`;
+  localStorage.setItem(key, JSON.stringify({ ledger, from, to }));
+  window.open(`/statement/view?k=${encodeURIComponent(key)}`, "_blank", "noopener,noreferrer");
+}
+
+export function readStatementPayload(storageKey: string): {
+  ledger: PartyLedger;
+  from: string;
+  to: string;
+} | null {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+    return JSON.parse(raw) as { ledger: PartyLedger; from: string; to: string };
+  } catch {
+    return null;
+  }
 }

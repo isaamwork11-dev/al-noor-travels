@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
+import { invoiceItemsFromBooking, openVoucher } from "@/lib/voucher";
 import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
 export default function BookingDetailPage({
@@ -75,6 +76,26 @@ export default function BookingDetailPage({
           <Link href="/bookings">
             <Button variant="secondary">Back</Button>
           </Link>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              openVoucher({
+                kind: "booking",
+                bookingId: booking.bookingId,
+                customerName: customer?.name || "—",
+                lines: [
+                  { label: "Travel", value: formatDate(booking.travelDate) },
+                  ...(booking.returnDate
+                    ? [{ label: "Return", value: formatDate(booking.returnDate) }]
+                    : []),
+                ],
+                items: invoiceItemsFromBooking(booking),
+                amount: formatPKR(booking.totalSale),
+              })
+            }
+          >
+            Invoice
+          </Button>
           {canEdit && (
             <Link href={`/bookings/new?edit=${booking.id}`}>
               <Button variant="secondary">Edit</Button>
@@ -145,7 +166,8 @@ export default function BookingDetailPage({
                 {Object.entries(svc.details || {}).map(([k, v]) =>
                   v ? (
                     <p key={k}>
-                      <span className="text-slate-500 capitalize">{k}:</span> {v}
+                      <span className="text-slate-500 capitalize">{k}:</span>{" "}
+                      {/date|check/i.test(k) ? formatDate(String(v)) : v}
                     </p>
                   ) : null
                 )}

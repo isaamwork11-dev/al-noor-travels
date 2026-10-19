@@ -3,8 +3,14 @@
 import { useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR, hotelNights } from "@/lib/format";
-import { openVoucher, type VoucherKind } from "@/lib/voucher";
+import { displayRef, formatDate, formatPKR, hotelNights } from "@/lib/format";
+import {
+  invoiceItemsFromBooking,
+  invoiceItemsFromHotel,
+  invoiceItemsFromTicket,
+  openVoucher,
+  type VoucherKind,
+} from "@/lib/voucher";
 import { Button, Card, EmptyState, PageHeader, Select } from "@/components/ui";
 
 export default function VouchersPage() {
@@ -38,6 +44,7 @@ export default function VouchersPage() {
           ...(h.referenceNumber ? [{ label: "Confirmation No", value: h.referenceNumber }] : []),
           ...(h.contactPerson ? [{ label: "Hotel Contact", value: h.contactPerson }] : []),
         ],
+        items: invoiceItemsFromHotel(h),
         amount: formatPKR(h.salePrice),
       });
     } else if (kind === "transport") {
@@ -68,9 +75,16 @@ export default function VouchersPage() {
         customerName: customerName(v.customerId),
         lines: [
           { label: "Visa Type", value: v.visaType },
+          { label: "Country", value: v.country || "—" },
           { label: "Passport", value: v.passportNo },
           { label: "Submitted", value: formatDate(v.submissionDate) },
           { label: "Status", value: v.status },
+        ],
+        items: [
+          {
+            details: `Visa · ${v.visaType}${v.country ? ` · ${v.country}` : ""} · Passport ${v.passportNo}`,
+            amount: formatPKR(v.salePrice),
+          },
         ],
         amount: formatPKR(v.salePrice),
       });
@@ -90,24 +104,18 @@ export default function VouchersPage() {
         bookingId: ticket.bookingId,
         customerName: customerName(ticket.customerId),
         lines: [
-          {
-            label: "Passenger",
-            value: ticket.passengerNames?.join(", ") || ticket.passengerName,
-          },
-          { label: "PAX", value: String(ticket.pax || 1) },
-          { label: "Sector", value: ticket.sector },
           { label: "Paid", value: formatPKR(paid) },
           {
             label: "Balance",
             value: formatPKR(Math.max(0, (ticket.totalAmount || ticket.salePrice) - paid)),
           },
         ],
+        items: invoiceItemsFromTicket(ticket),
         amount: formatPKR(ticket.totalAmount || ticket.salePrice),
       });
     } else if (kind === "booking") {
       const booking = travelBookings.find((x) => x.id === id);
       if (!booking) return;
-      const ticketLines = booking.services.flatMap((service) => service.tickets ?? []);
       const paid = payments
         .filter(
           (payment) =>
@@ -121,15 +129,10 @@ export default function VouchersPage() {
         bookingId: booking.bookingId,
         customerName: customerName(booking.customerId),
         lines: [
-          {
-            label: "Passenger",
-            value: ticketLines.map((ticket) => ticket.passengerName).join(", ") || "—",
-          },
-          { label: "PAX", value: String(ticketLines.length || 0) },
-          { label: "Services", value: booking.services.map((service) => service.title).join(", ") },
           { label: "Paid", value: formatPKR(paid) },
           { label: "Balance", value: formatPKR(Math.max(0, booking.totalSale - paid)) },
         ],
+        items: invoiceItemsFromBooking(booking),
         amount: formatPKR(booking.totalSale),
       });
     } else {
@@ -137,7 +140,7 @@ export default function VouchersPage() {
       if (!p) return;
       openVoucher({
         kind: "payment",
-        bookingId: p.id,
+        bookingId: displayRef(p.id),
         customerName: p.partyName,
         lines: [
           { label: "Type", value: p.type },
@@ -165,7 +168,10 @@ export default function VouchersPage() {
                   id: b.id,
                   label: `${b.bookingId} — ${b.title || "Travel Booking"}`,
                 }))
-              : payments.map((p) => ({ id: p.id, label: `${p.partyName} — ${formatPKR(p.amountPKR)}` }));
+              : payments.map((p) => ({
+                  id: p.id,
+                  label: `${displayRef(p.id)} — ${p.partyName} — ${formatPKR(p.amountPKR)}`,
+                }));
 
   return (
     <div>

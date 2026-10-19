@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR, todayISO } from "@/lib/format";
+import { displayRef, formatDate, formatPKR, todayISO } from "@/lib/format";
 import { buildPartyLedger } from "@/lib/accounting";
-import { generateLedgerPDF } from "@/lib/pdf";
+import { openLedgerPdfInTab } from "@/lib/pdf";
 import { Button, Card, EmptyState, PageHeader, Select } from "@/components/ui";
 import { FileDown } from "lucide-react";
 
@@ -79,9 +79,9 @@ export default function LedgerPage() {
             <Button
               variant="secondary"
               className="!px-2 !py-1 text-xs"
-              onClick={() => generateLedgerPDF(ledger, from, to)}
+              onClick={() => openLedgerPdfInTab(ledger, from, to)}
             >
-              <FileDown size={14} /> Download PDF Statement
+              <FileDown size={14} /> Open Statement
             </Button>
           )
         }
@@ -159,7 +159,7 @@ export default function LedgerPage() {
                     <tr className="border-b border-slate-100 text-xs text-slate-500">
                       <th className="pb-2 font-medium">Ref / Booking No</th>
                       <th className="pb-2 font-medium">Date of Entry</th>
-                      <th className="pb-2 font-medium">Particulars</th>
+                      <th className="pb-2 font-medium">Details</th>
                       <th className="pb-2 font-medium">Debit</th>
                       <th className="pb-2 font-medium">Credit</th>
                       <th className="pb-2 font-medium">Balance</th>
@@ -171,7 +171,7 @@ export default function LedgerPage() {
                         key={`${e.ref}-${i}`}
                         className={`border-b border-slate-50 last:border-0 ${e.ref === "OPEN" ? "bg-slate-50 font-medium" : ""}`}
                       >
-                        <td className="py-2.5 font-medium text-blue-700">{e.ref}</td>
+                        <td className="py-2.5 font-medium text-blue-700">{displayRef(e.ref)}</td>
                         <td className="py-2.5 text-slate-600">{formatDate(e.date)}</td>
                         <td className="py-2.5 text-slate-700">{e.description}</td>
                         <td className="py-2.5 font-semibold text-rose-700">

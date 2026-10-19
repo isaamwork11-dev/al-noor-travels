@@ -4,9 +4,9 @@ import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR, todayISO } from "@/lib/format";
+import { displayRef, formatDate, formatPKR, todayISO } from "@/lib/format";
 import { buildPartyLedger } from "@/lib/accounting";
-import { generateLedgerPDF } from "@/lib/pdf";
+import { openLedgerPdfInTab } from "@/lib/pdf";
 import { Button, Card, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
 import { FileDown, HandCoins } from "lucide-react";
 
@@ -145,9 +145,9 @@ export default function CustomerDetailPage() {
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <Button
           variant="secondary"
-          onClick={() => ledger && generateLedgerPDF(ledger, statementPeriod.from, statementPeriod.to)}
+          onClick={() => ledger && openLedgerPdfInTab(ledger, statementPeriod.from, statementPeriod.to)}
         >
-          <FileDown size={16} /> Download Statement PDF
+          <FileDown size={16} /> Open Statement
         </Button>
         <Button onClick={() => setPayOpen(true)}>
           <HandCoins size={16} /> Receive Payment
@@ -190,7 +190,7 @@ export default function CustomerDetailPage() {
                 <tr className="border-b border-slate-100 text-xs text-slate-500">
                   <th className="pb-2 font-medium">Ref</th>
                   <th className="pb-2 font-medium">Date</th>
-                  <th className="pb-2 font-medium">Particulars</th>
+                  <th className="pb-2 font-medium">Details</th>
                   <th className="pb-2 font-medium">Debit</th>
                   <th className="pb-2 font-medium">Credit</th>
                   <th className="pb-2 font-medium">Balance</th>
@@ -202,7 +202,7 @@ export default function CustomerDetailPage() {
                     key={`${e.ref}-${i}`}
                     className={`border-b border-slate-50 last:border-0 ${e.ref === "OPEN" ? "bg-slate-50 font-medium" : ""}`}
                   >
-                    <td className="py-2.5 font-medium text-blue-700">{e.ref}</td>
+                    <td className="py-2.5 font-medium text-blue-700">{displayRef(e.ref)}</td>
                     <td className="py-2.5 text-slate-600">{formatDate(e.date)}</td>
                     <td className="py-2.5 text-slate-700">{e.description}</td>
                     <td className="py-2.5 font-semibold text-rose-700">{e.debit ? formatPKR(e.debit) : "—"}</td>
@@ -384,7 +384,7 @@ export default function CustomerDetailPage() {
             <HistoryTable
               empty="No payments."
               rows={history!.Payments.map((p) => [
-                p.id,
+                displayRef(p.id),
                 formatPKR(p.amountPKR),
                 formatDate(p.dueDate),
                 p.paidDate ? formatDate(p.paidDate) : "—",

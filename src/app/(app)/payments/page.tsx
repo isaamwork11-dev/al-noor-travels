@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { FileDown, Plus, Trash2, Pencil } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatDateTime, formatPKR, todayISO } from "@/lib/format";
+import { displayRef, formatDate, formatDateTime, formatPKR, todayISO } from "@/lib/format";
 import { exportCSV } from "@/lib/csv";
 import type { Payment, PaymentMethod } from "@/lib/types";
 import { Button, Card, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Select, StatusBadge } from "@/components/ui";
@@ -220,6 +220,7 @@ export default function PaymentsPage() {
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-500">
                   <th className="pb-2 font-medium">Date</th>
+                  <th className="pb-2 font-medium">Ref</th>
                   <th className="pb-2 font-medium">Type</th>
                   <th className="pb-2 font-medium">Party</th>
                   <th className="pb-2 font-medium">In / Out</th>
@@ -237,6 +238,7 @@ export default function PaymentsPage() {
                   return (
                     <tr key={p.id} className="border-b border-slate-50 last:border-0">
                       <td className="py-2.5 text-slate-600">{formatDate(p.paidDate || p.createdAt)}</td>
+                      <td className="py-2.5 font-medium text-blue-700">{displayRef(p.id)}</td>
                       <td className="py-2.5 text-slate-600">{p.type}</td>
                       <td className="py-2.5 font-medium text-slate-800">{p.partyName}</td>
                       <td className="py-2.5">

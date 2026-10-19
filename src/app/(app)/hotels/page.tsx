@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, formatDateTime, formatPKR, hotelNights } from "@/lib/format";
-import { openVoucher } from "@/lib/voucher";
+import { invoiceItemsFromHotel, openVoucher } from "@/lib/voucher";
 import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 
 export default function HotelsPage() {
@@ -35,6 +35,7 @@ export default function HotelsPage() {
         { label: "Check-out", value: formatDate(h.checkOut) },
         { label: "Nights", value: String(nights) },
       ],
+      items: invoiceItemsFromHotel(h),
       amount: formatPKR(h.salePrice),
     });
   };

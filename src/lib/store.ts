@@ -9,7 +9,7 @@ import {
   logActivity as apiLogActivity,
   seed as seedApi,
 } from "./api-client";
-import { todayISO } from "./format";
+import { sortByName, todayISO } from "./format";
 import type {
   AirTicket,
   AppState,
@@ -132,9 +132,9 @@ function applyBootstrap(set: (partial: Partial<Store>) => void, payload: Bootstr
     services: booking.services ?? [],
   }));
   set({
-    users: (payload.users ?? []) as unknown as AppUser[],
-    customers: payload.customers ?? [],
-    suppliers: payload.suppliers ?? [],
+    users: sortByName((payload.users ?? []) as unknown as AppUser[]),
+    customers: sortByName(payload.customers ?? []),
+    suppliers: sortByName(payload.suppliers ?? []),
     airTickets: payload.airTickets ?? [],
     visas: payload.visas ?? [],
     hotels: payload.hotels ?? [],
@@ -218,12 +218,14 @@ export const useAppStore = create<Store>((set, get) => ({
       ...payload,
       outstanding: Number(payload.outstanding ?? 0),
     });
-    set((s) => ({ customers: [created, ...s.customers] }));
+    set((s) => ({ customers: sortByName([created, ...s.customers]) }));
   },
 
   updateCustomer: async (id, patch) => {
     const updated = await data.update<Customer>("customers", id, patch);
-    set((s) => ({ customers: s.customers.map((c) => (c.id === id ? updated : c)) }));
+    set((s) => ({
+      customers: sortByName(s.customers.map((c) => (c.id === id ? updated : c))),
+    }));
   },
 
   deleteCustomer: async (id) => {
@@ -236,12 +238,14 @@ export const useAppStore = create<Store>((set, get) => ({
       ...payload,
       outstanding: Number(payload.outstanding ?? 0),
     });
-    set((s) => ({ suppliers: [created, ...s.suppliers] }));
+    set((s) => ({ suppliers: sortByName([created, ...s.suppliers]) }));
   },
 
   updateSupplier: async (id, patch) => {
     const updated = await data.update<Supplier>("suppliers", id, patch);
-    set((s) => ({ suppliers: s.suppliers.map((x) => (x.id === id ? updated : x)) }));
+    set((s) => ({
+      suppliers: sortByName(s.suppliers.map((x) => (x.id === id ? updated : x))),
+    }));
   },
 
   deleteSupplier: async (id) => {
@@ -427,14 +431,14 @@ export const useAppStore = create<Store>((set, get) => ({
   addUser: async (payload) => {
     const created = await data.create<PublicUser>("users", payload);
     set((s) => ({
-      users: [...s.users, created as unknown as AppUser],
+      users: sortByName([...s.users, created as unknown as AppUser]),
     }));
   },
 
   updateUser: async (id, patch) => {
     const updated = await data.update<PublicUser>("users", id, patch);
     set((s) => ({
-      users: s.users.map((u) => (u.id === id ? ({ ...u, ...updated } as AppUser) : u)),
+      users: sortByName(s.users.map((u) => (u.id === id ? ({ ...u, ...updated } as AppUser) : u))),
       currentUser: s.currentUser?.id === id ? { ...s.currentUser, ...updated } : s.currentUser,
     }));
   },

@@ -4,9 +4,9 @@ import { use, useMemo } from "react";
 import Link from "next/link";
 import { FileDown } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate, formatPKR, todayISO } from "@/lib/format";
+import { displayRef, formatDate, formatPKR, todayISO } from "@/lib/format";
 import { buildPartyLedger } from "@/lib/accounting";
-import { generateLedgerPDF } from "@/lib/pdf";
+import { openLedgerPdfInTab } from "@/lib/pdf";
 import { Button, Card, EmptyState, PageHeader } from "@/components/ui";
 
 export default function SupplierDetailPage({
@@ -77,9 +77,9 @@ export default function SupplierDetailPage({
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <Button
           variant="secondary"
-          onClick={() => ledger && generateLedgerPDF(ledger, statementPeriod.from, statementPeriod.to)}
+          onClick={() => ledger && openLedgerPdfInTab(ledger, statementPeriod.from, statementPeriod.to)}
         >
-          <FileDown size={16} /> Download Statement PDF
+          <FileDown size={16} /> Open Statement
         </Button>
         <Link href="/suppliers">
           <Button variant="secondary">Back</Button>
@@ -121,7 +121,7 @@ export default function SupplierDetailPage({
                 <tr className="border-b border-slate-100 text-xs text-slate-500">
                   <th className="pb-2 font-medium">Ref</th>
                   <th className="pb-2 font-medium">Date</th>
-                  <th className="pb-2 font-medium">Particulars</th>
+                  <th className="pb-2 font-medium">Details</th>
                   <th className="pb-2 font-medium">Debit</th>
                   <th className="pb-2 font-medium">Credit</th>
                   <th className="pb-2 font-medium">Balance</th>
@@ -133,7 +133,7 @@ export default function SupplierDetailPage({
                     key={`${e.ref}-${i}`}
                     className={`border-b border-slate-50 last:border-0 ${e.ref === "OPEN" ? "bg-slate-50 font-medium" : ""}`}
                   >
-                    <td className="py-2.5 font-medium text-blue-700">{e.ref}</td>
+                    <td className="py-2.5 font-medium text-blue-700">{displayRef(e.ref)}</td>
                     <td className="py-2.5 text-slate-600">{formatDate(e.date)}</td>
                     <td className="py-2.5 text-slate-700">{e.description}</td>
                     <td className="py-2.5 font-semibold text-rose-700">{e.debit ? formatPKR(e.debit) : "—"}</td>
