@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
+import { normalizeTravelBooking } from "@/lib/booking-calc";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { invoiceItemsFromBooking, openVoucher } from "@/lib/voucher";
 import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
@@ -16,7 +17,10 @@ export default function BookingDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const user = useAppStore((s) => s.currentUser);
-  const booking = useAppStore((s) => s.travelBookings.find((b) => b.id === id));
+  const rawBooking = useAppStore((s) => s.travelBookings.find((b) => b.id === id));
+  const booking = rawBooking
+    ? { ...rawBooking, ...normalizeTravelBooking(rawBooking) }
+    : undefined;
   const customers = useAppStore((s) => s.customers);
   const suppliers = useAppStore((s) => s.suppliers);
   const deleteTravelBooking = useAppStore((s) => s.deleteTravelBooking);

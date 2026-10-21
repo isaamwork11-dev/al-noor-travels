@@ -1,9 +1,21 @@
 import { calcProfit, nextId, sarToPkr } from "./format";
 import type {
   BookingServiceItem,
+  BookingServiceKind,
   BookingTicketLine,
   TravelBooking,
 } from "./types";
+
+const SERVICE_KINDS: BookingServiceKind[] = ["ticket", "visa", "hotel", "transport"];
+
+export function asServiceKind(value: unknown, details?: BookingServiceItem["details"]): BookingServiceKind {
+  const k = String(value || "").toLowerCase();
+  if (SERVICE_KINDS.includes(k as BookingServiceKind)) return k as BookingServiceKind;
+  if (details?.hotelName || details?.checkIn || details?.checkOut) return "hotel";
+  if (details?.transportType || details?.pickup || details?.dropoff) return "transport";
+  if (details?.visaType || details?.passportNo) return "visa";
+  return "ticket";
+}
 
 /** Recalculate costPKR / profit for one ticket line from SAR + rate. */
 export function normalizeTicketLine(
@@ -42,10 +54,17 @@ export function normalizeAirTicketPrice(perTicketPrice: number, pax: number) {
 
 /** Recalculate a service line; ticket kind rolls up from passengers. */
 export function normalizeServiceItem(
-  service: Partial<BookingServiceItem> & { kind: BookingServiceItem["kind"] }
+  service: Partial<BookingServiceItem> & { kind?: BookingServiceItem["kind"] }
 ): BookingServiceItem {
-  if (service.kind === "ticket") {
-    const tickets = (service.tickets ?? []).map((t) => normalizeTicketLine(t));
+  const raw = service && typeof service === "object" ? service : {};
+  const details =
+    raw.details && typeof raw.details === "object" && !Array.isArray(raw.details)
+      ? { ...(raw.details as BookingServiceItem["details"]) }
+      : {};
+  const kind = asServiceKind(raw.kind, details);
+
+  if (kind === "ticket") {
+    const tickets = (raw.tickets ?? []).map((t) => normalizeTicketLine(t));
     const costPKR = tickets.reduce((a, t) => a + t.costPKR, 0);
     const salePrice = tickets.reduce((a, t) => a + t.salePrice, 0);
     const costSAR = tickets.reduce((a, t) => a + t.costSAR, 0);
@@ -54,11 +73,11 @@ export function normalizeServiceItem(
         ? tickets[0].exchangeRate
         : tickets[0]?.exchangeRate || Number(service.exchangeRate) || 0;
     return {
-      id: service.id || nextId("svc"),
+      id: raw.id || nextId("svc"),
       kind: "ticket",
-      supplierId: service.supplierId || "",
-      title: service.title || (tickets.length ? `${tickets.length} ticket(s)` : "Tickets"),
-      details: { ...(service.details ?? {}) },
+      supplierId: raw.supplierId || "",
+      title: raw.title || (tickets.length ? `${tickets.length} ticket(s)` : "Tickets"),
+      details,
       costSAR,
       exchangeRate,
       costPKR,
@@ -68,16 +87,16 @@ export function normalizeServiceItem(
     };
   }
 
-  const costSAR = Number(service.costSAR) || 0;
-  const exchangeRate = Number(service.exchangeRate) || 0;
+  const costSAR = Number(raw.costSAR) || 0;
+  const exchangeRate = Number(raw.exchangeRate) || 0;
   const costPKR = sarToPkr(costSAR, exchangeRate);
-  const salePrice = Number(service.salePrice) || 0;
+  const salePrice = Number(raw.salePrice) || 0;
   return {
-    id: service.id || nextId("svc"),
-    kind: service.kind,
-    supplierId: service.supplierId || "",
-    title: service.title || service.kind,
-    details: { ...(service.details ?? {}) },
+    id: raw.id || nextId("svc"),
+    kind,
+    supplierId: raw.supplierId || "",
+    title: raw.title || kind,
+    details,
     costSAR,
     exchangeRate,
     costPKR,
@@ -92,8 +111,8 @@ export function computeBookingTotals(services: BookingServiceItem[]): {
   totalSale: number;
   totalProfit: number;
 } {
-  const totalCostPKR = services.reduce((a, s) => a + s.costPKR, 0);
-  const totalSale = services.reduce((a, s) => a + s.salePrice, 0);
+  const totalCostPKR = services.reduce((a, s) => a + (Number(s?.costPKR) || 0), 0);
+  const totalSale = services.reduce((a, s) => a + (Number(s?.salePrice) || 0), 0);
   return {
     totalCostPKR,
     totalSale,
@@ -107,8 +126,8 @@ export function normalizeTravelBooking(
   TravelBooking,
   "services" | "totalCostPKR" | "totalSale" | "totalProfit"
 > {
-  const services = (booking.services ?? []).map((s) =>
-    normalizeServiceItem(s as BookingServiceItem)
-  );
+  const services = (booking.services ?? [])
+    .filter((s): s is BookingServiceItem => !!s && typeof s === "object")
+    .map((s) => normalizeServiceItem(s));
   return { services, ...computeBookingTotals(services) };
 }

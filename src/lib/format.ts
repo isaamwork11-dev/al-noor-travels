@@ -1,7 +1,7 @@
 import type { AppUser, Currency, ExchangeRates } from "./types";
 
 export function formatPKR(amount: number): string {
-  return `PKR ${amount.toLocaleString("en-PK")}`;
+  return `PKR ${(Number(amount) || 0).toLocaleString("en-PK")}`;
 }
 
 export function formatMoney(amount: number, currency: Currency = "PKR"): string {

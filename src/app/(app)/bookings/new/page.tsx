@@ -75,7 +75,13 @@ export default function NewBookingPage() {
   const exchangeRates = useAppStore((s) => s.exchangeRates);
   const addTravelBooking = useAppStore((s) => s.addTravelBooking);
   const updateTravelBooking = useAppStore((s) => s.updateTravelBooking);
-  const existing = useAppStore((s) => s.travelBookings.find((booking) => booking.id === searchParams.get("edit")));
+  const airTickets = useAppStore((s) => s.airTickets);
+  const hotels = useAppStore((s) => s.hotels);
+  const visas = useAppStore((s) => s.visas);
+  const transports = useAppStore((s) => s.transports);
+  const umrahPackages = useAppStore((s) => s.umrahPackages);
+  const editId = searchParams.get("edit");
+  const existing = useAppStore((s) => s.travelBookings.find((booking) => booking.id === editId));
   const showCost = user?.role === "super_admin" || !!user?.permissions.viewCost;
   const showProfit = user?.role === "super_admin" || !!user?.permissions.viewProfit;
 
@@ -111,7 +117,35 @@ export default function NewBookingPage() {
     setServices(normalizeTravelBooking(existing).services);
   }, [existing]);
 
-  const totals = useMemo(() => computeBookingTotals(services), [services]);
+  useEffect(() => {
+    if (!editId || existing) return;
+    if (airTickets.some((row) => row.id === editId)) {
+      router.replace(`/air-tickets/new?edit=${editId}`);
+      return;
+    }
+    if (hotels.some((row) => row.id === editId)) {
+      router.replace(`/hotels/new?edit=${editId}`);
+      return;
+    }
+    if (visas.some((row) => row.id === editId)) {
+      router.replace(`/visas/new?edit=${editId}`);
+      return;
+    }
+    if (transports.some((row) => row.id === editId)) {
+      router.replace(`/transport/new?edit=${editId}`);
+      return;
+    }
+    if (umrahPackages.some((row) => row.id === editId)) {
+      router.replace(`/umrah/new?edit=${editId}`);
+      return;
+    }
+  }, [airTickets, editId, existing, hotels, router, transports, umrahPackages, visas]);
+
+  const safeServices = useMemo(
+    () => (services ?? []).map((svc) => normalizeServiceItem(svc || { details: {} })),
+    [services]
+  );
+  const totals = useMemo(() => computeBookingTotals(safeServices), [safeServices]);
 
   const addService = (kind: BookingServiceKind) => {
     setServices((prev) => [
@@ -261,7 +295,7 @@ export default function NewBookingPage() {
           </div>
         )}
 
-        {services.map((svc, si) => {
+        {safeServices.map((svc, si) => {
           const details = svc.details ?? {};
           return (
           <Card

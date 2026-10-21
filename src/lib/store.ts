@@ -130,13 +130,7 @@ type Store = AppState & AuthSlice & DataActions;
 function applyBootstrap(set: (partial: Partial<Store>) => void, payload: BootstrapData) {
   const travelBookings = (payload.travelBookings ?? []).map((booking) => ({
     ...booking,
-    services: (booking.services ?? []).map((service) =>
-      normalizeServiceItem({
-        ...service,
-        kind: service.kind || "ticket",
-        details: service.details ?? {},
-      })
-    ),
+    services: (booking.services ?? []).map((service) => normalizeServiceItem(service)),
   }));
   set({
     users: sortByName((payload.users ?? []) as unknown as AppUser[]),
@@ -148,13 +142,7 @@ function applyBootstrap(set: (partial: Partial<Store>) => void, payload: Bootstr
     transports: payload.transports ?? [],
     umrahPackages: (payload.umrahPackages ?? []).map((pkg) => ({
       ...pkg,
-      services: (pkg.services ?? []).map((service) =>
-        normalizeServiceItem({
-          ...service,
-          kind: service.kind || "visa",
-          details: service.details ?? {},
-        })
-      ),
+      services: (pkg.services ?? []).map((service) => normalizeServiceItem(service)),
     })),
     tourPackages: payload.tourPackages ?? [],
     insurance: payload.insurance ?? [],

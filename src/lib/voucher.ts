@@ -138,7 +138,7 @@ export function invoiceItemsFromBooking(booking: TravelBooking): VoucherLineItem
       const type = service.details?.transportType || service.title || "Transport";
       const route =
         service.details?.pickup || service.details?.dropoff
-          ? ` · ${service.details.pickup || "—"} → ${service.details.dropoff || "—"}`
+          ? ` · ${service.details?.pickup || "—"} → ${service.details?.dropoff || "—"}`
           : "";
       const date = service.details?.date ? ` · ${formatDate(service.details.date)}` : "";
       items.push({
