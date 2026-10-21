@@ -8,6 +8,7 @@ import {
   computeBookingTotals,
   normalizeServiceItem,
   normalizeTicketLine,
+  normalizeTravelBooking,
 } from "@/lib/booking-calc";
 import { formatPKR, nextId, todayISO } from "@/lib/format";
 import type {
@@ -97,7 +98,18 @@ export default function NewBookingPage() {
 
   // Edit mode hydrates the booking after the client store has loaded it.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { if (existing) { setHeader({ customerId: existing.customerId, title: existing.title, travelDate: existing.travelDate, returnDate: existing.returnDate, status: existing.status, notes: existing.notes }); setServices(existing.services); } }, [existing]);
+  useEffect(() => {
+    if (!existing) return;
+    setHeader({
+      customerId: existing.customerId,
+      title: existing.title || "",
+      travelDate: existing.travelDate || todayISO(),
+      returnDate: existing.returnDate || "",
+      status: existing.status || "Confirmed",
+      notes: existing.notes || "",
+    });
+    setServices(normalizeTravelBooking(existing).services);
+  }, [existing]);
 
   const totals = useMemo(() => computeBookingTotals(services), [services]);
 
@@ -249,10 +261,12 @@ export default function NewBookingPage() {
           </div>
         )}
 
-        {services.map((svc, si) => (
+        {services.map((svc, si) => {
+          const details = svc.details ?? {};
+          return (
           <Card
-            key={svc.id}
-            title={`${svc.kind.toUpperCase()} — ${svc.title || "Service"}`}
+            key={svc.id || `svc-${si}`}
+            title={`${(svc.kind || "service").toUpperCase()} — ${svc.title || "Service"}`}
             action={
               <button
                 type="button"
@@ -291,29 +305,29 @@ export default function NewBookingPage() {
               <div className="mb-3 grid gap-3 sm:grid-cols-3">
                 <Input
                   label="Visa Type"
-                  value={svc.details.visaType || ""}
+                  value={details.visaType || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, visaType: e.target.value },
+                      details: { ...details, visaType: e.target.value },
                       title: e.target.value || svc.title,
                     })
                   }
                 />
                 <Input
                   label="Passport No"
-                  value={svc.details.passportNo || ""}
+                  value={details.passportNo || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, passportNo: e.target.value },
+                      details: { ...details, passportNo: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Country"
-                  value={svc.details.country || ""}
+                  value={details.country || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, country: e.target.value },
+                      details: { ...details, country: e.target.value },
                     })
                   }
                 />
@@ -324,67 +338,67 @@ export default function NewBookingPage() {
               <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <Input
                   label="Hotel Name"
-                  value={svc.details.hotelName || ""}
+                  value={details.hotelName || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, hotelName: e.target.value },
+                      details: { ...details, hotelName: e.target.value },
                       title: e.target.value || svc.title,
                     })
                   }
                 />
                 <Input
                   label="City"
-                  value={svc.details.city || ""}
+                  value={details.city || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, city: e.target.value },
+                      details: { ...details, city: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Room Type"
-                  value={svc.details.roomType || ""}
+                  value={details.roomType || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, roomType: e.target.value },
+                      details: { ...details, roomType: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Check-in"
                   type="date"
-                  value={svc.details.checkIn || ""}
+                  value={details.checkIn || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, checkIn: e.target.value },
+                      details: { ...details, checkIn: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Check-out"
                   type="date"
-                  value={svc.details.checkOut || ""}
+                  value={details.checkOut || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, checkOut: e.target.value },
+                      details: { ...details, checkOut: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Reference / Confirmation No"
-                  value={svc.details.referenceNumber || ""}
+                  value={details.referenceNumber || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, referenceNumber: e.target.value },
+                      details: { ...details, referenceNumber: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Hotel Contact Person (Name / No)"
-                  value={svc.details.contactPerson || ""}
+                  value={details.contactPerson || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, contactPerson: e.target.value },
+                      details: { ...details, contactPerson: e.target.value },
                     })
                   }
                 />
@@ -395,57 +409,57 @@ export default function NewBookingPage() {
               <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <Input
                   label="Type"
-                  value={svc.details.transportType || ""}
+                  value={details.transportType || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, transportType: e.target.value },
+                      details: { ...details, transportType: e.target.value },
                       title: e.target.value || svc.title,
                     })
                   }
                 />
                 <Input
                   label="Pickup"
-                  value={svc.details.pickup || ""}
+                  value={details.pickup || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, pickup: e.target.value },
+                      details: { ...details, pickup: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Drop-off"
-                  value={svc.details.dropoff || ""}
+                  value={details.dropoff || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, dropoff: e.target.value },
+                      details: { ...details, dropoff: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Date"
                   type="date"
-                  value={svc.details.date || ""}
+                  value={details.date || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, date: e.target.value },
+                      details: { ...details, date: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Vehicle"
-                  value={svc.details.vehicle || ""}
+                  value={details.vehicle || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, vehicle: e.target.value },
+                      details: { ...details, vehicle: e.target.value },
                     })
                   }
                 />
                 <Input
                   label="Driver / Contact Person (Name / No)"
-                  value={svc.details.contactPerson || ""}
+                  value={details.contactPerson || ""}
                   onChange={(e) =>
                     updateService(si, {
-                      details: { ...svc.details, contactPerson: e.target.value },
+                      details: { ...details, contactPerson: e.target.value },
                     })
                   }
                 />
@@ -611,7 +625,8 @@ export default function NewBookingPage() {
               </div>
             )}
           </Card>
-        ))}
+          );
+        })}
 
         <Card title="3 · Booking Totals">
           <div className="grid gap-3 sm:grid-cols-3">

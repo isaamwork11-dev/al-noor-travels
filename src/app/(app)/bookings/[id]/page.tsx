@@ -155,8 +155,8 @@ export default function BookingDetailPage({
       )}
 
       <div className="space-y-4">
-        {booking.services.map((svc) => (
-          <Card key={svc.id} title={`${svc.kind.toUpperCase()} — ${svc.title}`}>
+        {(booking.services ?? []).map((svc) => (
+          <Card key={svc.id} title={`${(svc.kind || "service").toUpperCase()} — ${svc.title || "Service"}`}>
             {svc.kind !== "ticket" && (
               <div className="mb-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
                 <p>

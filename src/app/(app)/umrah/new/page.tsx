@@ -53,7 +53,33 @@ export default function NewUmrahPage() {
   const [saving, setSaving] = useState(false);
   // Edit mode hydrates the existing package and its nested services.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { if (existing) { setForm({ customerId: existing.customerId, packageName: existing.packageName, includesVisa: existing.includesVisa, includesTicket: existing.includesTicket, includesHotel: existing.includesHotel, includesTransport: existing.includesTransport, travelDate: existing.travelDate, returnDate: existing.returnDate, costPrice: existing.costPrice, salePrice: existing.salePrice, status: existing.status }); setServices(existing.services?.length ? existing.services : [emptyService("visa", exchangeRates.SAR || 73.9)]); } }, [existing, exchangeRates.SAR]);
+  useEffect(() => {
+    if (!existing) return;
+    setForm({
+      customerId: existing.customerId,
+      packageName: existing.packageName,
+      includesVisa: existing.includesVisa,
+      includesTicket: existing.includesTicket,
+      includesHotel: existing.includesHotel,
+      includesTransport: existing.includesTransport,
+      travelDate: existing.travelDate,
+      returnDate: existing.returnDate,
+      costPrice: existing.costPrice,
+      salePrice: existing.salePrice,
+      status: existing.status,
+    });
+    setServices(
+      existing.services?.length
+        ? existing.services.map((service) =>
+            normalizeServiceItem({
+              ...service,
+              kind: service.kind || "visa",
+              details: service.details ?? {},
+            })
+          )
+        : [emptyService("visa", exchangeRates.SAR || 73.9)]
+    );
+  }, [existing, exchangeRates.SAR]);
   const totals = useMemo(() => computeBookingTotals(services), [services]);
 
   const updateService = (index: number, patch: Partial<BookingServiceItem>) => setServices((prev) => {
@@ -183,9 +209,9 @@ export default function NewUmrahPage() {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <Input label="Service Title" value={svc.title} onChange={(e) => updateService(si, { title: e.target.value })} />
                   {svc.kind !== "ticket" && <Select label="Vendor / Supplier" value={svc.supplierId} onChange={(e) => updateService(si, { supplierId: e.target.value })}><option value="">Select vendor</option>{suppliers.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.type})</option>)}</Select>}
-                  {svc.kind === "visa" && <><Input label="Visa Type" value={svc.details.visaType || ""} onChange={(e) => updateService(si, { details: { ...svc.details, visaType: e.target.value } })} /><Input label="Passport No" value={svc.details.passportNo || ""} onChange={(e) => updateService(si, { details: { ...svc.details, passportNo: e.target.value } })} /><Input label="Country" value={svc.details.country || ""} onChange={(e) => updateService(si, { details: { ...svc.details, country: e.target.value } })} /></>}
-                  {svc.kind === "hotel" && <><Input label="Hotel Name" value={svc.details.hotelName || ""} onChange={(e) => updateService(si, { title: e.target.value || svc.title, details: { ...svc.details, hotelName: e.target.value } })} /><Input label="City" value={svc.details.city || ""} onChange={(e) => updateService(si, { details: { ...svc.details, city: e.target.value } })} /><Input label="Room Type" value={svc.details.roomType || ""} onChange={(e) => updateService(si, { details: { ...svc.details, roomType: e.target.value } })} /><Input label="Check-in" type="date" value={svc.details.checkIn || ""} onChange={(e) => updateService(si, { details: { ...svc.details, checkIn: e.target.value } })} /><Input label="Check-out" type="date" value={svc.details.checkOut || ""} onChange={(e) => updateService(si, { details: { ...svc.details, checkOut: e.target.value } })} /></>}
-                  {svc.kind === "transport" && <><Input label="Type" value={svc.details.transportType || ""} onChange={(e) => updateService(si, { title: e.target.value || svc.title, details: { ...svc.details, transportType: e.target.value } })} /><Input label="Pickup" value={svc.details.pickup || ""} onChange={(e) => updateService(si, { details: { ...svc.details, pickup: e.target.value } })} /><Input label="Drop-off" value={svc.details.dropoff || ""} onChange={(e) => updateService(si, { details: { ...svc.details, dropoff: e.target.value } })} /><Input label="Date" type="date" value={svc.details.date || ""} onChange={(e) => updateService(si, { details: { ...svc.details, date: e.target.value } })} /><Input label="Vehicle" value={svc.details.vehicle || ""} onChange={(e) => updateService(si, { details: { ...svc.details, vehicle: e.target.value } })} /></>}
+                  {svc.kind === "visa" && <><Input label="Visa Type" value={(svc.details ?? {}).visaType || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), visaType: e.target.value } })} /><Input label="Passport No" value={(svc.details ?? {}).passportNo || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), passportNo: e.target.value } })} /><Input label="Country" value={(svc.details ?? {}).country || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), country: e.target.value } })} /></>}
+                  {svc.kind === "hotel" && <><Input label="Hotel Name" value={(svc.details ?? {}).hotelName || ""} onChange={(e) => updateService(si, { title: e.target.value || svc.title, details: { ...(svc.details ?? {}), hotelName: e.target.value } })} /><Input label="City" value={(svc.details ?? {}).city || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), city: e.target.value } })} /><Input label="Room Type" value={(svc.details ?? {}).roomType || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), roomType: e.target.value } })} /><Input label="Check-in" type="date" value={(svc.details ?? {}).checkIn || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), checkIn: e.target.value } })} /><Input label="Check-out" type="date" value={(svc.details ?? {}).checkOut || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), checkOut: e.target.value } })} /></>}
+                  {svc.kind === "transport" && <><Input label="Type" value={(svc.details ?? {}).transportType || ""} onChange={(e) => updateService(si, { title: e.target.value || svc.title, details: { ...(svc.details ?? {}), transportType: e.target.value } })} /><Input label="Pickup" value={(svc.details ?? {}).pickup || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), pickup: e.target.value } })} /><Input label="Drop-off" value={(svc.details ?? {}).dropoff || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), dropoff: e.target.value } })} /><Input label="Date" type="date" value={(svc.details ?? {}).date || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), date: e.target.value } })} /><Input label="Vehicle" value={(svc.details ?? {}).vehicle || ""} onChange={(e) => updateService(si, { details: { ...(svc.details ?? {}), vehicle: e.target.value } })} /></>}
                 </div>
                 {svc.kind !== "ticket" && showCost && <SarCostFields costSAR={svc.costSAR} exchangeRate={svc.exchangeRate} salePrice={svc.salePrice} showProfit={showProfit} onChange={(patch) => updateService(si, patch)} />}
                 {svc.kind === "ticket" && <div className="space-y-3"><div className="flex items-center justify-between"><p className="text-xs font-semibold text-slate-600">Passengers / Tickets</p><Button type="button" variant="secondary" className="!py-1 text-xs" onClick={() => updateService(si, { tickets: [...(svc.tickets ?? []), emptyTicket(exchangeRates.SAR || 73.9)] })}><Plus size={14} /> Add Ticket</Button></div>{(svc.tickets ?? []).map((tk, ti) => <div key={tk.id} className="rounded-lg bg-slate-50 p-3"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Input label="Passenger Name" required value={tk.passengerName} onChange={(e) => updateTicket(si, ti, { passengerName: e.target.value })} /><Select label="Vendor / Supplier" value={tk.supplierId} onChange={(e) => updateTicket(si, ti, { supplierId: e.target.value })}><option value="">Select vendor</option>{suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select><Input label="Airline" value={tk.airline} onChange={(e) => updateTicket(si, ti, { airline: e.target.value })} /><Input label="PNR" value={tk.pnr} onChange={(e) => updateTicket(si, ti, { pnr: e.target.value })} /><Input label="Ticket No" value={tk.ticketNumber} onChange={(e) => updateTicket(si, ti, { ticketNumber: e.target.value })} /><Input label="Sector" value={tk.sector} onChange={(e) => updateTicket(si, ti, { sector: e.target.value })} /><Input label="Travel Date" type="date" value={tk.travelDate} onChange={(e) => updateTicket(si, ti, { travelDate: e.target.value })} /></div>{showCost && <SarCostFields costSAR={tk.costSAR} exchangeRate={tk.exchangeRate} salePrice={tk.salePrice} showProfit={showProfit} onChange={(patch) => updateTicket(si, ti, patch)} />}</div>)}</div>}

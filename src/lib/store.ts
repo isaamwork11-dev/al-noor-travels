@@ -9,6 +9,7 @@ import {
   logActivity as apiLogActivity,
   seed as seedApi,
 } from "./api-client";
+import { normalizeServiceItem } from "./booking-calc";
 import { sortByName, todayISO } from "./format";
 import type {
   AirTicket,
@@ -129,7 +130,13 @@ type Store = AppState & AuthSlice & DataActions;
 function applyBootstrap(set: (partial: Partial<Store>) => void, payload: BootstrapData) {
   const travelBookings = (payload.travelBookings ?? []).map((booking) => ({
     ...booking,
-    services: booking.services ?? [],
+    services: (booking.services ?? []).map((service) =>
+      normalizeServiceItem({
+        ...service,
+        kind: service.kind || "ticket",
+        details: service.details ?? {},
+      })
+    ),
   }));
   set({
     users: sortByName((payload.users ?? []) as unknown as AppUser[]),
@@ -139,7 +146,16 @@ function applyBootstrap(set: (partial: Partial<Store>) => void, payload: Bootstr
     visas: payload.visas ?? [],
     hotels: payload.hotels ?? [],
     transports: payload.transports ?? [],
-    umrahPackages: payload.umrahPackages ?? [],
+    umrahPackages: (payload.umrahPackages ?? []).map((pkg) => ({
+      ...pkg,
+      services: (pkg.services ?? []).map((service) =>
+        normalizeServiceItem({
+          ...service,
+          kind: service.kind || "visa",
+          details: service.details ?? {},
+        })
+      ),
+    })),
     tourPackages: payload.tourPackages ?? [],
     insurance: payload.insurance ?? [],
     travelBookings,
