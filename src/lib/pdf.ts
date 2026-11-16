@@ -32,7 +32,8 @@ function drawCompanyHeader(doc: jsPDF, title: string) {
 
   if (logo?.complete) {
     try {
-      doc.addImage(logo, "JPEG", 168, 4, 28, 28, undefined, "FAST");
+      const format = COMPANY.logo.toLowerCase().endsWith(".png") ? "PNG" : "JPEG";
+      doc.addImage(logo, format, 168, 4, 28, 28, undefined, "FAST");
     } catch {
       /* logo is optional */
     }

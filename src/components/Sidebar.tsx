@@ -85,7 +85,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         <div className="border-b border-white/10 px-4 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-white/20">
-              <img src="/ssb-logo.jpeg" alt={COMPANY.name} className="h-full w-full object-contain" />
+              <img src={COMPANY.logo} alt={COMPANY.name} className="h-full w-full object-contain" />
             </div>
             <div>
               <p className="text-sm font-bold leading-tight">{COMPANY.name}</p>

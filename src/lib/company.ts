@@ -10,8 +10,8 @@ export const COMPANY = {
   /** Primary landline + mobiles printed on vouchers. */
   phones: ["0213-2751509", "0321-2331437", "0300-8202893"] as const,
   email: "ssbtravelntours@gmail.com",
-  /** Public asset used as the logo on PDFs. */
-  logo: "/ssb-voucher-logo.jpg",
+  /** Public asset used as the logo on PDFs, vouchers, login, and sidebar. */
+  logo: "/ssb-logo.png",
 };
 
 /** Tel line as shown on vouchers: `0213-…  0321-… / 0300-…` */

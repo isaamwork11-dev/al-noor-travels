@@ -75,7 +75,7 @@ function StatementViewInner() {
               <p className="mt-1 text-[11px] text-slate-200">Tel: {companyTelLine()}</p>
               <p className="text-[11px] text-slate-200">Email: {COMPANY.email}</p>
             </div>
-            <img src={COMPANY.logo} alt="" className="h-14 w-14 rounded-lg bg-white object-contain p-0.5" />
+            <img src={COMPANY.logo} alt="" className="h-16 w-16 rounded-lg bg-white object-contain p-1 sm:h-20 sm:w-20" />
           </header>
 
           <div className="border-b border-slate-100 px-5 py-3">

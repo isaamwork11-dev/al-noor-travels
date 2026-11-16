@@ -82,7 +82,7 @@ function VoucherViewInner() {
             <img
               src={COMPANY.logo}
               alt=""
-              className="h-14 w-14 shrink-0 rounded-lg bg-white object-contain p-0.5 sm:h-16 sm:w-16"
+              className="h-16 w-16 shrink-0 rounded-lg bg-white object-contain p-1 sm:h-20 sm:w-20"
             />
           </header>
 
